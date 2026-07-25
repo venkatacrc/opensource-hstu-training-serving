@@ -149,6 +149,22 @@ background and overlaps it with Phase 2.
   where it left off.
 - Submodule issues: `cd workdir/recsys-examples && git submodule update
   --init --recursive`.
+- *Known upstream bug, patched automatically*: recsys-examples@v26.06.01's
+  `docker/Dockerfile` (`base_triton` stage) pins
+  `triton-inference-server/pytorch_backend` via `git fetch --depth 1 origin
+  r26.07 && git checkout --detach ceeecb7`. That only works while `ceeecb7`
+  happens to be the exact tip of the `r26.07` branch; as soon as upstream
+  pushes any further commit there, `ceeecb7` falls outside the depth-1
+  shallow window and the build fails with `fatal: git checkout: --detach
+  does not take a path argument 'ceeecb7'`. `scripts/01_build_env.sh`
+  detects and patches this automatically (fetches the exact pinned SHA
+  directly instead of by branch name, which GitHub supports and which is
+  immune to the branch moving further) before invoking `docker build` --
+  no action needed. If you still hit this exact error, check that the patch
+  step's log line ("Patching known-broken pytorch_backend@ceeecb7 pin...")
+  actually ran and succeeded; if the upstream Dockerfile's layout has
+  changed since v26.06.01, the `sed` pattern may need updating in
+  `scripts/01_build_env.sh`'s `patch_dockerfile_known_upstream_issues`.
 
 ### Phase 2/3 -- `scripts/02_fetch_datasets.sh`, `scripts/03_preprocess_data.sh` (~5-20 min)
 
