@@ -67,3 +67,20 @@ training and serving a large-scale HSTU model within a bounded time/hardware
 budget, not a claim of state-of-the-art recommendation quality (though AUC is
 tracked as a sanity signal). See `docs/ARCHITECTURE.md` for the full
 reasoning behind every major design decision.
+
+## Issues
+1. ERROR: scripts/01_build_env.sh failed -- see /home/nvadmin/hstu-bench/state/run_all_01_build_env.log.
+```bash
+export DOCKER_BUILDKIT=1
+export COMPOSE_BUILDKIT=1
+
+sudo apt-get update
+sudo apt-get install -y docker-buildx-plugin
+
+docker buildx version
+
+ln -s /home/nvadmin/hstu-bench/workdir/recsys-examples/docker /home/nvadmin/hstu-bench/docker
+
+rm -f state/run_all_01_build_env.log
+./scripts/run_all.sh
+```
