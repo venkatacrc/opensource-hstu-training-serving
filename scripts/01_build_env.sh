@@ -24,6 +24,40 @@ log "Fetching submodules (FBGEMM, etc.) -- can take a few minutes..."
 git -C "$RECSYS_DIR" submodule update --init --recursive
 ok "recsys-examples checked out at $(git -C "$RECSYS_DIR" rev-parse --short HEAD) (tag $RECSYS_TAG)"
 
+patch_dockerfile_known_upstream_issues() {
+  # Known bug in recsys-examples@v26.06.01's docker/Dockerfile (base_triton
+  # stage): it pins triton-inference-server/pytorch_backend to commit ceeecb7
+  # via `git fetch --depth 1 origin r26.07 && git checkout --detach ceeecb7`.
+  # That only works while ceeecb7 happens to be the exact tip of r26.07; the
+  # instant upstream pushes any further commit to that branch, ceeecb7 falls
+  # out of the depth-1 shallow window and `git checkout --detach ceeecb7`
+  # fails with "fatal: git checkout: --detach does not take a path argument
+  # 'ceeecb7'" (git can't resolve the unfetched SHA, so it tries -- and fails
+  # -- to treat it as a pathspec). Reproduced independently against the live
+  # repo: r26.07's tip has already moved to a commit after ceeecb7.
+  #
+  # Fix: fetch the exact pinned commit by full SHA instead of by branch name.
+  # GitHub allows shallow-fetching an arbitrary reachable SHA directly
+  # (verified against this exact repo/commit), so this is immune to the
+  # branch moving further in the future -- no depth-guessing required.
+  local dockerfile="$RECSYS_DIR/docker/Dockerfile"
+  [[ -f "$dockerfile" ]] || return 0
+  if grep -q 'git fetch --depth 1 origin r26.07' "$dockerfile" 2>/dev/null; then
+    log "Patching known-broken pytorch_backend@ceeecb7 pin in $dockerfile (upstream shallow-fetch-by-branch bug -- see comment in $0 for details)..."
+    sed -i.bak \
+      -e 's/git fetch --depth 1 origin r26\.07;/git fetch --depth 1 origin ceeecb748caa785b359095a74c05d55dace2591a;/' \
+      -e 's/git checkout --detach ceeecb7;/git checkout --detach FETCH_HEAD;/' \
+      "$dockerfile"
+    rm -f "$dockerfile.bak"
+    grep -q 'git fetch --depth 1 origin ceeecb748caa785b359095a74c05d55dace2591a' "$dockerfile" \
+      || die "Failed to patch $dockerfile (expected pattern not found after sed -- upstream file layout may have changed; inspect manually)."
+    ok "Dockerfile patched."
+  else
+    log "Dockerfile does not contain the known r26.07-shallow-fetch pattern (already patched, or upstream fixed it) -- no patch needed."
+  fi
+}
+patch_dockerfile_known_upstream_issues
+
 log "Building Docker image '$IMAGE_NAME' from $RECSYS_DIR/docker/Dockerfile (base=$BASE_IMAGE)."
 log "This is a multi-stage build (FBGEMM -> TorchRec -> Triton Server -> Megatron/FlashAttention/FlexKV -> recsys-examples). Expect 1.5-3 hours on first run."
 BUILD_LOG="$STATE_DIR/${PHASE}_docker_build.log"
