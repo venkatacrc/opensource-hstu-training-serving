@@ -4,12 +4,10 @@ workdir/
 
 # State markers are host-specific run state, not source.
 state/*.done
-state/*.log
 !state/.gitkeep
 
 # Keep result JSON/plots out of git by default (multi-run artifacts); the generated
 # docs/RESULTS.md summary is the thing meant to be committed/shared.
-results/*
 !results/.gitkeep
 !results/README.md
 
