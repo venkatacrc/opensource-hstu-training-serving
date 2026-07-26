@@ -1,0 +1,166 @@
+[1;34m[2026-07-26 09:29:55][0m === Phase 3: Preprocess datasets inside container (ml-20m, kuairand-1k) ===
+[1;34m[2026-07-26 09:29:55][0m No fillna(method=...) pattern found in /home/nvadmin/hstu-bench/workdir/recsys-examples/examples/commons/hstu_data_preprocessor.py -- already patched or upstream fixed it.
+[1;34m[2026-07-26 09:29:55][0m Preprocessing ml-20m inside container...
+
+=============
+== PyTorch ==
+=============
+
+NVIDIA Release 26.05 (build 313520559)
+PyTorch Version 2.12.0a0+5aff392
+Container image Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2014-2024 Facebook Inc.
+Copyright (c) 2011-2014 Idiap Research Institute (Ronan Collobert)
+Copyright (c) 2012-2014 Deepmind Technologies    (Koray Kavukcuoglu)
+Copyright (c) 2011-2012 NEC Laboratories America (Koray Kavukcuoglu)
+Copyright (c) 2011-2013 NYU                      (Clement Farabet)
+Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
+Copyright (c) 2006      Idiap Research Institute (Samy Bengio)
+Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
+Copyright (c) 2015      Google Inc.
+Copyright (c) 2015      Yangqing Jia
+Copyright (c) 2013-2016 The Caffe contributors
+All rights reserved.
+
+Various files include modifications (c) NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+
+GOVERNING TERMS: The software and materials are governed by the NVIDIA Software License Agreement
+(found at https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-software-license-agreement/)
+and the Product-Specific Terms for NVIDIA AI Products
+(found at https://www.nvidia.com/en-us/agreements/enterprise-software/product-specific-terms-for-ai-products/).
+
+NOTE: CUDA Forward Compatibility mode ENABLED.
+  Using CUDA 13.2 driver version 595.58.03 with kernel driver version 580.159.04.
+  See https://docs.nvidia.com/deploy/cuda-compatibility/ for details.
+
+NOTE: Mellanox network driver detected, but NVIDIA peer memory driver not
+      detected.  Multi-node communication performance may be reduced.
+
+INFO:main:[========= Generating Training Data =========]
+INFO:main:Processed file saved to /workspace/data/ml-20m/processed_seqs.csv
+INFO:main:num users: 138493
+INFO:main:['feature_name', 'min', 'max']
+INFO:main:[['user_id', np.int64(1), np.int64(138493)]]
+INFO:main:['feature_name', 'min', 'max', 'min_seqlen', 'max_seqlen', 'average_seqlen']
+INFO:main:[['movie_id', 1, 131262, 20, 9254, 144], ['rating', 0, 9, 20, 9254, 144]]
+INFO:main:[========= Generating Inference Data =========]
+INFO:main:Preprocessing data...
+INFO:main:Processed file saved to /workspace/data/ml-20m/processed_seqs_inference.csv and /workspace/data/ml-20m/processed_batches.csv
+INFO:main:num users: 138493
+INFO:main:num batches: 567437
+INFO:main:['feature_name', 'min', 'max']
+INFO:main:[['user_id', np.int64(1), np.int64(138493)]]
+INFO:main:['feature_name', 'min', 'max', 'min_seqlen', 'max_seqlen', 'average_seqlen']
+INFO:main:[['movie_id', 1, 131262, 20, 9254, 144], ['rating', 0, 9, 20, 9254, 144]]
+[1;34m[2026-07-26 09:33:51][0m Preprocessing kuairand-1k inside container...
+
+=============
+== PyTorch ==
+=============
+
+NVIDIA Release 26.05 (build 313520559)
+PyTorch Version 2.12.0a0+5aff392
+Container image Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2014-2024 Facebook Inc.
+Copyright (c) 2011-2014 Idiap Research Institute (Ronan Collobert)
+Copyright (c) 2012-2014 Deepmind Technologies    (Koray Kavukcuoglu)
+Copyright (c) 2011-2012 NEC Laboratories America (Koray Kavukcuoglu)
+Copyright (c) 2011-2013 NYU                      (Clement Farabet)
+Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
+Copyright (c) 2006      Idiap Research Institute (Samy Bengio)
+Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
+Copyright (c) 2015      Google Inc.
+Copyright (c) 2015      Yangqing Jia
+Copyright (c) 2013-2016 The Caffe contributors
+All rights reserved.
+
+Various files include modifications (c) NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+
+GOVERNING TERMS: The software and materials are governed by the NVIDIA Software License Agreement
+(found at https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-software-license-agreement/)
+and the Product-Specific Terms for NVIDIA AI Products
+(found at https://www.nvidia.com/en-us/agreements/enterprise-software/product-specific-terms-for-ai-products/).
+
+NOTE: CUDA Forward Compatibility mode ENABLED.
+  Using CUDA 13.2 driver version 595.58.03 with kernel driver version 580.159.04.
+  See https://docs.nvidia.com/deploy/cuda-compatibility/ for details.
+
+NOTE: Mellanox network driver detected, but NVIDIA peer memory driver not
+      detected.  Multi-node communication performance may be reduced.
+
+INFO:main:[========= Generating Training Data =========]
+INFO:main:Preprocessing data...
+INFO:main:Processing /workspace/data/KuaiRand-1K/data/log_standard_4_08_to_4_21_1k.csv...
+INFO:main:Processing /workspace/data/KuaiRand-1K/data/log_standard_4_22_to_5_08_1k.csv...
+INFO:main:Merging user features...
+INFO:main:Processed file saved to /workspace/data/KuaiRand-1K/data/processed_seqs.csv
+INFO:main:num users: 983
+INFO:main:['feature_name', 'min', 'max']
+INFO:main:[['user_id', np.int64(0), np.int64(999)], ['user_active_degree', np.int64(1), np.int64(7)], ['follow_user_num_range', np.int64(1), np.int64(8)], ['fans_user_num_range', np.int64(1), np.int64(8)], ['friend_user_num_range', np.int64(1), np.int64(7)], ['register_days_range', np.int64(1), np.int64(7)]]
+INFO:main:['feature_name', 'min', 'max', 'min_seqlen', 'max_seqlen', 'average_seqlen']
+INFO:main:[['video_id', 1, 4371899, 198, 127557, 11876], ['action_weights', 0, 232, 198, 127557, 11876]]
+INFO:main:[========= Generating Inference Data =========]
+INFO:main:Preprocessing data...
+INFO:main:Processing /workspace/data/KuaiRand-1K/data/log_standard_4_08_to_4_21_1k.csv...
+INFO:main:Processing /workspace/data/KuaiRand-1K/data/log_standard_4_22_to_5_08_1k.csv...
+INFO:main:Merging user features...
+INFO:main:Processed file saved to /workspace/data/KuaiRand-1K/data/processed_seqs_inference.csv and /workspace/data/KuaiRand-1K/data/processed_batches.csv
+INFO:main:num users: 1000
+INFO:main:num dates: 31
+INFO:main:num batches: 1345415
+INFO:main:['feature_name', 'min', 'max']
+INFO:main:[['user_id', np.int64(0), np.int64(999)], ['user_active_degree', np.int64(1), np.int64(7)], ['follow_user_num_range', np.int64(1), np.int64(8)], ['fans_user_num_range', np.int64(1), np.int64(8)], ['friend_user_num_range', np.int64(1), np.int64(7)], ['register_days_range', np.int64(1), np.int64(7)], ['date', np.int64(20220408), np.int64(20220508)]]
+INFO:main:['feature_name', 'min', 'max', 'min_seqlen', 'max_seqlen', 'average_seqlen']
+INFO:main:[['video_id', 1, 4371899, 1, 9021, 418], ['action_weights', 0, 232, 1, 9021, 418]]
+[1;34m[2026-07-26 09:39:27][0m Validating processed outputs and collecting dataset stats...
+[1;32m[2026-07-26 09:39:43] OK:[0m Dataset stats written to /home/nvadmin/hstu-bench/results/dataset_stats.json
+
+=============
+== PyTorch ==
+=============
+
+NVIDIA Release 26.05 (build 313520559)
+PyTorch Version 2.12.0a0+5aff392
+Container image Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2014-2024 Facebook Inc.
+Copyright (c) 2011-2014 Idiap Research Institute (Ronan Collobert)
+Copyright (c) 2012-2014 Deepmind Technologies    (Koray Kavukcuoglu)
+Copyright (c) 2011-2012 NEC Laboratories America (Koray Kavukcuoglu)
+Copyright (c) 2011-2013 NYU                      (Clement Farabet)
+Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
+Copyright (c) 2006      Idiap Research Institute (Samy Bengio)
+Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
+Copyright (c) 2015      Google Inc.
+Copyright (c) 2015      Yangqing Jia
+Copyright (c) 2013-2016 The Caffe contributors
+All rights reserved.
+
+Various files include modifications (c) NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+
+GOVERNING TERMS: The software and materials are governed by the NVIDIA Software License Agreement
+(found at https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-software-license-agreement/)
+and the Product-Specific Terms for NVIDIA AI Products
+(found at https://www.nvidia.com/en-us/agreements/enterprise-software/product-specific-terms-for-ai-products/).
+
+NOTE: CUDA Forward Compatibility mode ENABLED.
+  Using CUDA 13.2 driver version 595.58.03 with kernel driver version 580.159.04.
+  See https://docs.nvidia.com/deploy/cuda-compatibility/ for details.
+
+NOTE: Mellanox network driver detected, but NVIDIA peer memory driver not
+      detected.  Multi-node communication performance may be reduced.
+
+{
+  "ml-20m": {
+    "dataset": "ml-20m",
+    "processed_dir": "/workspace/data/ml-20m",
+    "train_rows": 138493,
+    "train_users": 138493,
+    "train_csv_bytes": 411658218
+  },
+  "kuairand-1k": {
+    "dataset": "kuairand-1k",
+    "processed_dir": "/workspace/data/KuaiRand-1K",
+    "error": "missing /workspace/data/KuaiRand-1K/processed_seqs.csv"
+  }
+}
+[1;32m[2026-07-26 09:39:43] OK:[0m Preprocessing complete. Proceed to scripts/04_size_model.sh.

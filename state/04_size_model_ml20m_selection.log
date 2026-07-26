@@ -1,0 +1,45 @@
+
+=============
+== PyTorch ==
+=============
+
+NVIDIA Release 26.05 (build 313520559)
+PyTorch Version 2.12.0a0+5aff392
+Container image Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2014-2024 Facebook Inc.
+Copyright (c) 2011-2014 Idiap Research Institute (Ronan Collobert)
+Copyright (c) 2012-2014 Deepmind Technologies    (Koray Kavukcuoglu)
+Copyright (c) 2011-2012 NEC Laboratories America (Koray Kavukcuoglu)
+Copyright (c) 2011-2013 NYU                      (Clement Farabet)
+Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
+Copyright (c) 2006      Idiap Research Institute (Samy Bengio)
+Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
+Copyright (c) 2015      Google Inc.
+Copyright (c) 2015      Yangqing Jia
+Copyright (c) 2013-2016 The Caffe contributors
+All rights reserved.
+
+Various files include modifications (c) NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+
+GOVERNING TERMS: The software and materials are governed by the NVIDIA Software License Agreement
+(found at https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-software-license-agreement/)
+and the Product-Specific Terms for NVIDIA AI Products
+(found at https://www.nvidia.com/en-us/agreements/enterprise-software/product-specific-terms-for-ai-products/).
+
+NOTE: CUDA Forward Compatibility mode ENABLED.
+  Using CUDA 13.2 driver version 595.58.03 with kernel driver version 580.159.04.
+  See https://docs.nvidia.com/deploy/cuda-compatibility/ for details.
+
+NOTE: Mellanox network driver detected, but NVIDIA peer memory driver not
+      detected.  Multi-node communication performance may be reduced.
+
+ batch  proj_per_gpu_GB    weights  optimizer      grads  activations
+     4            290.1        1.9       11.3        3.8        273.2  [OVER]
+     8            563.3        1.9       11.3        3.8        546.4  [OVER]
+    12            836.5        1.9       11.3        3.8        819.6  [OVER]
+    16           1109.7        1.9       11.3        3.8       1092.7  [OVER]
+    24           1656.0        1.9       11.3        3.8       1639.1  [OVER]
+    32           2202.4        1.9       11.3        3.8       2185.5  [OVER]
+    48           3295.1        1.9       11.3        3.8       3278.2  [OVER]
+    64           4387.9        1.9       11.3        3.8       4371.0  [OVER]
+NO_FIT

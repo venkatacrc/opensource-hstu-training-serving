@@ -1,0 +1,208 @@
+I0726 20:00:10.896047 1226 pinned_memory_manager.cc:277] "Pinned memory pool is created at '0x76e5ac000000' with size 268435456"
+I0726 20:00:10.896099 1226 cuda_memory_manager.cc:107] "CUDA memory pool is created on device 0 with size 67108864"
+I0726 20:00:10.897168 1226 model_lifecycle.cc:473] "loading: hstu_model:1"
+I0726 20:00:10.897189 1226 model_lifecycle.cc:473] "loading: hstu_sparse:1"
+I0726 20:00:10.902102 1226 python_be.cc:2138] "Input tensors can be both in CPU and GPU. FORCE_CPU_ONLY_INPUT_TENSORS is off."
+[INFO] HSTU inference only mode (HSTU_INFERENCE_ONLY) is on. No training support.
+I0726 20:00:16.644111 1226 python_be.cc:2542] "TRITONBACKEND_ModelInstanceInitialize: hstu_model_0_0 (GPU device 0)"
+I0726 20:00:16.924366 1226 python_be.cc:2542] "TRITONBACKEND_ModelInstanceInitialize: hstu_sparse_0_0 (MODEL device 0)"
+/usr/local/lib/python3.12/dist-packages/dynamicemb/batched_dynamicemb_tables.py:649: UserWarning: Set optimizer type to NONE as not on training mode.
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/dynamicemb/scored_hashtable.py:402: UserWarning: Table total capacity is rounded from 10001000 to 10001024.
+  warnings.warn(
+I0726 20:00:47.334773 1226 model_lifecycle.cc:849] "successfully loaded 'hstu_sparse'"
+I0726 20:00:55.354363 1226 pb_stub.cc:389] "Failed to initialize Python stub: RuntimeError: Error(s) in loading state_dict for InferenceDenseModule:\n\tsize mismatch for _hstu_block._preprocessor._positional_encoder._position_embeddings_weight: copying a param with shape torch.Size([8192, 8192]) from checkpoint, the shape in current model is torch.Size([8192, 512]).\n\tsize mismatch for _hstu_block._attention_layers.0._input_layernorm_weight: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([512]).\n\tsize mismatch for _hstu_block._attention_layers.0._input_layernorm_bias: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([512]).\n\tsize mismatch for _hstu_block._attention_layers.0._linear_uvqk.weight: copying a param with shape torch.Size([8192, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 512]).\n\tsize mismatch for _hstu_block._attention_layers.0._linear_uvqk.bias: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([2048]).\n\tsize mismatch for _hstu_block._attention_layers.0._linear_proj.weight: copying a param with shape torch.Size([8192, 2048]) from checkpoint, the shape in current model is torch.Size([512, 512]).\n\tsize mismatch for _hstu_block._attention_layers.1._input_layernorm_weight: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([512]).\n\tsize mismatch for _hstu_block._attention_layers.1._input_layernorm_bias: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([512]).\n\tsize mismatch for _hstu_block._attention_layers.1._linear_uvqk.weight: copying a param with shape torch.Size([8192, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 512]).\n\tsize mismatch for _hstu_block._attention_layers.1._linear_uvqk.bias: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([2048]).\n\tsize mismatch for _hstu_block._attention_layers.1._linear_proj.weight: copying a param with shape torch.Size([8192, 2048]) from checkpoint, the shape in current model is torch.Size([512, 512]).\n\tsize mismatch for _hstu_block._attention_layers.2._input_layernorm_weight: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([512]).\n\tsize mismatch for _hstu_block._attention_layers.2._input_layernorm_bias: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([512]).\n\tsize mismatch for _hstu_block._attention_layers.2._linear_uvqk.weight: copying a param with shape torch.Size([8192, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 512]).\n\tsize mismatch for _hstu_block._attention_layers.2._linear_uvqk.bias: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([2048]).\n\tsize mismatch for _hstu_block._attention_layers.2._linear_proj.weight: copying a param with shape torch.Size([8192, 2048]) from checkpoint, the shape in current model is torch.Size([512, 512]).\n\tsize mismatch for _mlp._mlp.0.weight: copying a param with shape torch.Size([1024, 8192]) from checkpoint, the shape in current model is torch.Size([512, 512]).\n\tsize mismatch for _mlp._mlp.0.bias: copying a param with shape torch.Size([1024]) from checkpoint, the shape in current model is torch.Size([512]).\n\tsize mismatch for _mlp._mlp.2.weight: copying a param with shape torch.Size([8, 1024]) from checkpoint, the shape in current model is torch.Size([8, 512]).\n\nAt:\n  /usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py(2638): load_state_dict\n  /workspace/recsys-examples/examples/hstu/modules/inference_dense_module.py(323): load_state_dict\n  /workspace/recsys-examples/examples/hstu/modules/inference_dense_module.py(293): load_checkpoint\n  /workspace/recsys-examples/examples/hstu/inference/triton/hstu_model/1/model.py(242): get_inference_dense_model_with_feature_names\n  /workspace/recsys-examples/examples/hstu/inference/triton/hstu_model/1/model.py(332): initialize\n"
+[INFO] HSTU inference only mode (HSTU_INFERENCE_ONLY) is on. No training support.
+Setting up cuda graphs ...
+Cudagraph setup configs:
+  Batch size: [1, 2]
+  Length per sequence [128, 256, 512, 768, 1024, 1280, 1536, 1792, 2048, 2304, 2560, 2816, 3072, 3328, 3584, 3840, 4096, 4352, 4608, 4864, 5120, 5376, 5632, 5888, 6144, 6400, 6656, 6912, 7168, 7424, 7680, 7936, 8192, 8416]
+Capture cuda graphs for batch_size = 8 and num_tokens = 67328
+Capture cuda graphs for batch_size = 1 and num_tokens = 128
+Capture cuda graphs for batch_size = 1 and num_tokens = 256
+Capture cuda graphs for batch_size = 1 and num_tokens = 512
+Capture cuda graphs for batch_size = 1 and num_tokens = 768
+Capture cuda graphs for batch_size = 1 and num_tokens = 1024
+Capture cuda graphs for batch_size = 1 and num_tokens = 1280
+Capture cuda graphs for batch_size = 1 and num_tokens = 1536
+Capture cuda graphs for batch_size = 1 and num_tokens = 1792
+Capture cuda graphs for batch_size = 1 and num_tokens = 2048
+Capture cuda graphs for batch_size = 1 and num_tokens = 2304
+Capture cuda graphs for batch_size = 1 and num_tokens = 2560
+Capture cuda graphs for batch_size = 1 and num_tokens = 2816
+Capture cuda graphs for batch_size = 1 and num_tokens = 3072
+Capture cuda graphs for batch_size = 1 and num_tokens = 3328
+Capture cuda graphs for batch_size = 1 and num_tokens = 3584
+Capture cuda graphs for batch_size = 1 and num_tokens = 3840
+Capture cuda graphs for batch_size = 1 and num_tokens = 4096
+Capture cuda graphs for batch_size = 1 and num_tokens = 4352
+Capture cuda graphs for batch_size = 1 and num_tokens = 4608
+Capture cuda graphs for batch_size = 1 and num_tokens = 4864
+Capture cuda graphs for batch_size = 1 and num_tokens = 5120
+Capture cuda graphs for batch_size = 1 and num_tokens = 5376
+Capture cuda graphs for batch_size = 1 and num_tokens = 5632
+Capture cuda graphs for batch_size = 1 and num_tokens = 5888
+Capture cuda graphs for batch_size = 1 and num_tokens = 6144
+Capture cuda graphs for batch_size = 1 and num_tokens = 6400
+Capture cuda graphs for batch_size = 1 and num_tokens = 6656
+Capture cuda graphs for batch_size = 1 and num_tokens = 6912
+Capture cuda graphs for batch_size = 1 and num_tokens = 7168
+Capture cuda graphs for batch_size = 1 and num_tokens = 7424
+Capture cuda graphs for batch_size = 1 and num_tokens = 7680
+Capture cuda graphs for batch_size = 1 and num_tokens = 7936
+Capture cuda graphs for batch_size = 1 and num_tokens = 8192
+Capture cuda graphs for batch_size = 1 and num_tokens = 8416
+Capture cuda graphs for batch_size = 2 and num_tokens = 256
+Capture cuda graphs for batch_size = 2 and num_tokens = 512
+Capture cuda graphs for batch_size = 2 and num_tokens = 1024
+Capture cuda graphs for batch_size = 2 and num_tokens = 1536
+Capture cuda graphs for batch_size = 2 and num_tokens = 2048
+Capture cuda graphs for batch_size = 2 and num_tokens = 2560
+Capture cuda graphs for batch_size = 2 and num_tokens = 3072
+Capture cuda graphs for batch_size = 2 and num_tokens = 3584
+Capture cuda graphs for batch_size = 2 and num_tokens = 4096
+Capture cuda graphs for batch_size = 2 and num_tokens = 4608
+Capture cuda graphs for batch_size = 2 and num_tokens = 5120
+Capture cuda graphs for batch_size = 2 and num_tokens = 5632
+Capture cuda graphs for batch_size = 2 and num_tokens = 6144
+Capture cuda graphs for batch_size = 2 and num_tokens = 6656
+Capture cuda graphs for batch_size = 2 and num_tokens = 7168
+Capture cuda graphs for batch_size = 2 and num_tokens = 7680
+Capture cuda graphs for batch_size = 2 and num_tokens = 8192
+Capture cuda graphs for batch_size = 2 and num_tokens = 8704
+Capture cuda graphs for batch_size = 2 and num_tokens = 9216
+Capture cuda graphs for batch_size = 2 and num_tokens = 9728
+Capture cuda graphs for batch_size = 2 and num_tokens = 10240
+Capture cuda graphs for batch_size = 2 and num_tokens = 10752
+Capture cuda graphs for batch_size = 2 and num_tokens = 11264
+Capture cuda graphs for batch_size = 2 and num_tokens = 11776
+Capture cuda graphs for batch_size = 2 and num_tokens = 12288
+Capture cuda graphs for batch_size = 2 and num_tokens = 12800
+Capture cuda graphs for batch_size = 2 and num_tokens = 13312
+Capture cuda graphs for batch_size = 2 and num_tokens = 13824
+Capture cuda graphs for batch_size = 2 and num_tokens = 14336
+Capture cuda graphs for batch_size = 2 and num_tokens = 14848
+Capture cuda graphs for batch_size = 2 and num_tokens = 15360
+Capture cuda graphs for batch_size = 2 and num_tokens = 15872
+Capture cuda graphs for batch_size = 2 and num_tokens = 16384
+Capture cuda graphs for batch_size = 2 and num_tokens = 16832
+!!!!!!! Segfault encountered !!!!!!!
+  File "./signal/../sysdeps/unix/sysv/linux/x86_64/libc_sigaction.c", line 0, in 0x000072de8b90e32f
+  File "<unknown>", line 0, in triton::backend::python::Stub::~Stub()
+  File "<unknown>", line 0, in std::_Sp_counted_ptr<triton::backend::python::Stub*, (__gnu_cxx::_Lock_policy)2>::_M_dispose()
+  File "<unknown>", line 0, in std::_Sp_counted_base<(__gnu_cxx::_Lock_policy)2>::_M_release()
+  File "<unknown>", line 0, in main
+  File "<unknown>", line 0, in _start
+  File "<unknown>", line 0, in 0xffffffffffffffff
+
+E0726 20:00:57.595889 1226 backend_model.cc:719] "ERROR: Failed to create instance: RuntimeError: Error(s) in loading state_dict for InferenceDenseModule:\n\tsize mismatch for _hstu_block._preprocessor._positional_encoder._position_embeddings_weight: copying a param with shape torch.Size([8192, 8192]) from checkpoint, the shape in current model is torch.Size([8192, 512]).\n\tsize mismatch for _hstu_block._attention_layers.0._input_layernorm_weight: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([512]).\n\tsize mismatch for _hstu_block._attention_layers.0._input_layernorm_bias: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([512]).\n\tsize mismatch for _hstu_block._attention_layers.0._linear_uvqk.weight: copying a param with shape torch.Size([8192, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 512]).\n\tsize mismatch for _hstu_block._attention_layers.0._linear_uvqk.bias: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([2048]).\n\tsize mismatch for _hstu_block._attention_layers.0._linear_proj.weight: copying a param with shape torch.Size([8192, 2048]) from checkpoint, the shape in current model is torch.Size([512, 512]).\n\tsize mismatch for _hstu_block._attention_layers.1._input_layernorm_weight: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([512]).\n\tsize mismatch for _hstu_block._attention_layers.1._input_layernorm_bias: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([512]).\n\tsize mismatch for _hstu_block._attention_layers.1._linear_uvqk.weight: copying a param with shape torch.Size([8192, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 512]).\n\tsize mismatch for _hstu_block._attention_layers.1._linear_uvqk.bias: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([2048]).\n\tsize mismatch for _hstu_block._attention_layers.1._linear_proj.weight: copying a param with shape torch.Size([8192, 2048]) from checkpoint, the shape in current model is torch.Size([512, 512]).\n\tsize mismatch for _hstu_block._attention_layers.2._input_layernorm_weight: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([512]).\n\tsize mismatch for _hstu_block._attention_layers.2._input_layernorm_bias: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([512]).\n\tsize mismatch for _hstu_block._attention_layers.2._linear_uvqk.weight: copying a param with shape torch.Size([8192, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 512]).\n\tsize mismatch for _hstu_block._attention_layers.2._linear_uvqk.bias: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([2048]).\n\tsize mismatch for _hstu_block._attention_layers.2._linear_proj.weight: copying a param with shape torch.Size([8192, 2048]) from checkpoint, the shape in current model is torch.Size([512, 512]).\n\tsize mismatch for _mlp._mlp.0.weight: copying a param with shape torch.Size([1024, 8192]) from checkpoint, the shape in current model is torch.Size([512, 512]).\n\tsize mismatch for _mlp._mlp.0.bias: copying a param with shape torch.Size([1024]) from checkpoint, the shape in current model is torch.Size([512]).\n\tsize mismatch for _mlp._mlp.2.weight: copying a param with shape torch.Size([8, 1024]) from checkpoint, the shape in current model is torch.Size([8, 512]).\n\nAt:\n  /usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py(2638): load_state_dict\n  /workspace/recsys-examples/examples/hstu/modules/inference_dense_module.py(323): load_state_dict\n  /workspace/recsys-examples/examples/hstu/modules/inference_dense_module.py(293): load_checkpoint\n  /workspace/recsys-examples/examples/hstu/inference/triton/hstu_model/1/model.py(242): get_inference_dense_model_with_feature_names\n  /workspace/recsys-examples/examples/hstu/inference/triton/hstu_model/1/model.py(332): initialize\n"
+E0726 20:00:57.596034 1226 model_lifecycle.cc:654] "failed to load 'hstu_model' version 1: Internal: RuntimeError: Error(s) in loading state_dict for InferenceDenseModule:\n\tsize mismatch for _hstu_block._preprocessor._positional_encoder._position_embeddings_weight: copying a param with shape torch.Size([8192, 8192]) from checkpoint, the shape in current model is torch.Size([8192, 512]).\n\tsize mismatch for _hstu_block._attention_layers.0._input_layernorm_weight: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([512]).\n\tsize mismatch for _hstu_block._attention_layers.0._input_layernorm_bias: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([512]).\n\tsize mismatch for _hstu_block._attention_layers.0._linear_uvqk.weight: copying a param with shape torch.Size([8192, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 512]).\n\tsize mismatch for _hstu_block._attention_layers.0._linear_uvqk.bias: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([2048]).\n\tsize mismatch for _hstu_block._attention_layers.0._linear_proj.weight: copying a param with shape torch.Size([8192, 2048]) from checkpoint, the shape in current model is torch.Size([512, 512]).\n\tsize mismatch for _hstu_block._attention_layers.1._input_layernorm_weight: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([512]).\n\tsize mismatch for _hstu_block._attention_layers.1._input_layernorm_bias: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([512]).\n\tsize mismatch for _hstu_block._attention_layers.1._linear_uvqk.weight: copying a param with shape torch.Size([8192, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 512]).\n\tsize mismatch for _hstu_block._attention_layers.1._linear_uvqk.bias: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([2048]).\n\tsize mismatch for _hstu_block._attention_layers.1._linear_proj.weight: copying a param with shape torch.Size([8192, 2048]) from checkpoint, the shape in current model is torch.Size([512, 512]).\n\tsize mismatch for _hstu_block._attention_layers.2._input_layernorm_weight: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([512]).\n\tsize mismatch for _hstu_block._attention_layers.2._input_layernorm_bias: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([512]).\n\tsize mismatch for _hstu_block._attention_layers.2._linear_uvqk.weight: copying a param with shape torch.Size([8192, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 512]).\n\tsize mismatch for _hstu_block._attention_layers.2._linear_uvqk.bias: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([2048]).\n\tsize mismatch for _hstu_block._attention_layers.2._linear_proj.weight: copying a param with shape torch.Size([8192, 2048]) from checkpoint, the shape in current model is torch.Size([512, 512]).\n\tsize mismatch for _mlp._mlp.0.weight: copying a param with shape torch.Size([1024, 8192]) from checkpoint, the shape in current model is torch.Size([512, 512]).\n\tsize mismatch for _mlp._mlp.0.bias: copying a param with shape torch.Size([1024]) from checkpoint, the shape in current model is torch.Size([512]).\n\tsize mismatch for _mlp._mlp.2.weight: copying a param with shape torch.Size([8, 1024]) from checkpoint, the shape in current model is torch.Size([8, 512]).\n\nAt:\n  /usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py(2638): load_state_dict\n  /workspace/recsys-examples/examples/hstu/modules/inference_dense_module.py(323): load_state_dict\n  /workspace/recsys-examples/examples/hstu/modules/inference_dense_module.py(293): load_checkpoint\n  /workspace/recsys-examples/examples/hstu/inference/triton/hstu_model/1/model.py(242): get_inference_dense_model_with_feature_names\n  /workspace/recsys-examples/examples/hstu/inference/triton/hstu_model/1/model.py(332): initialize\n"
+I0726 20:00:57.596076 1226 model_lifecycle.cc:789] "failed to load 'hstu_model'"
+I0726 20:00:57.596259 1226 server.cc:639] 
++------------------+------+
+| Repository Agent | Path |
++------------------+------+
++------------------+------+
+
+I0726 20:00:57.596292 1226 server.cc:666] 
++---------+-------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Backend | Path                                                  | Config                                                                                                                                                        |
++---------+-------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| python  | /opt/tritonserver/backends/python/libtriton_python.so | {"cmdline":{"auto-complete-config":"true","backend-directory":"/opt/tritonserver/backends","min-compute-capability":"6.000000","default-max-batch-size":"4"}} |
++---------+-------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+I0726 20:00:57.596345 1226 server.cc:709] 
++-------------+---------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Model       | Version | Status                                                                                                                                                                                                                    |
++-------------+---------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| hstu_model  | 1       | UNAVAILABLE: Internal: RuntimeError: Error(s) in loading state_dict for InferenceDenseModule:                                                                                                                             |
+|             |         | 	size mismatch for _hstu_block._preprocessor._positional_encoder._position_embeddings_weight: copying a param with shape torch.Size([8192, 8192]) from checkpoint, the shape in current model is torch.Size([8192, 512]). |
+|             |         | 	size mismatch for _hstu_block._attention_layers.0._input_layernorm_weight: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([512]).                               |
+|             |         | 	size mismatch for _hstu_block._attention_layers.0._input_layernorm_bias: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([512]).                                 |
+|             |         | 	size mismatch for _hstu_block._attention_layers.0._linear_uvqk.weight: copying a param with shape torch.Size([8192, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 512]).                       |
+|             |         | 	size mismatch for _hstu_block._attention_layers.0._linear_uvqk.bias: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([2048]).                                    |
+|             |         | 	size mismatch for _hstu_block._attention_layers.0._linear_proj.weight: copying a param with shape torch.Size([8192, 2048]) from checkpoint, the shape in current model is torch.Size([512, 512]).                        |
+|             |         | 	size mismatch for _hstu_block._attention_layers.1._input_layernorm_weight: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([512]).                               |
+|             |         | 	size mismatch for _hstu_block._attention_layers.1._input_layernorm_bias: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([512]).                                 |
+|             |         | 	size mismatch for _hstu_block._attention_layers.1._linear_uvqk.weight: copying a param with shape torch.Size([8192, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 512]).                       |
+|             |         | 	size mismatch for _hstu_block._attention_layers.1._linear_uvqk.bias: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([2048]).                                    |
+|             |         | 	size mismatch for _hstu_block._attention_layers.1._linear_proj.weight: copying a param with shape torch.Size([8192, 2048]) from checkpoint, the shape in current model is torch.Size([512, 512]).                        |
+|             |         | 	size mismatch for _hstu_block._attention_layers.2._input_layernorm_weight: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([512]).                               |
+|             |         | 	size mismatch for _hstu_block._attention_layers.2._input_layernorm_bias: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([512]).                                 |
+|             |         | 	size mismatch for _hstu_block._attention_layers.2._linear_uvqk.weight: copying a param with shape torch.Size([8192, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 512]).                       |
+|             |         | 	size mismatch for _hstu_block._attention_layers.2._linear_uvqk.bias: copying a param with shape torch.Size([8192]) from checkpoint, the shape in current model is torch.Size([2048]).                                    |
+|             |         | 	size mismatch for _hstu_block._attention_layers.2._linear_proj.weight: copying a param with shape torch.Size([8192, 2048]) from checkpoint, the shape in current model is torch.Size([512, 512]).                        |
+|             |         | 	size mismatch for _mlp._mlp.0.weight: copying a param with shape torch.Size([1024, 8192]) from checkpoint, the shape in current model is torch.Size([512, 512]).                                                         |
+|             |         | 	size mismatch for _mlp._mlp.0.bias: copying a param with shape torch.Size([1024]) from checkpoint, the shape in current model is torch.Size([512]).                                                                      |
+|             |         | 	size mismatch for _mlp._mlp.2.weight: copying a param with shape torch.Size([8, 1024]) from checkpoint, the shape in current model is torch.Size([8, 512]).                                                              |
+|             |         |                                                                                                                                                                                                                           |
+|             |         | At:                                                                                                                                                                                                                       |
+|             |         |   /usr/local/lib/python3.12/dist-packages/torch/nn/modules/module.py(2638): load_state_dict                                                                                                                               |
+|             |         |   /workspace/recsys-examples/examples/hstu/modules/inference_dense_module.py(323): load_state_dict                                                                                                                        |
+|             |         |   /workspace/recsys-examples/examples/hstu/modules/inference_dense_module.py(293): load_checkpoint                                                                                                                        |
+|             |         |   /workspace/recsys-examples/examples/hstu/inference/triton/hstu_model/1/model.py(242): get_inference_dense_model_with_feature_names                                                                                      |
+|             |         |   /workspace/recsys-examples/examples/hstu/inference/triton/hstu_model/1/model.py(332): initialize                                                                                                                        |
+| hstu_sparse | 1       | READY                                                                                                                                                                                                                     |
++-------------+---------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+I0726 20:00:57.596469 1226 tritonserver.cc:2598] 
++----------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Option                           | Value                                                                                                                                                                                                     |
++----------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| server_id                        | triton                                                                                                                                                                                                    |
+| server_version                   | 2.70.0                                                                                                                                                                                                    |
+| server_extensions                | classification sequence model_repository model_repository(unload_dependents) schedule_policy model_configuration system_shared_memory cuda_shared_memory binary_tensor_data parameters statistics logging |
+| model_repository_path[0]         | ./inference/triton                                                                                                                                                                                        |
+| model_control_mode               | MODE_NONE                                                                                                                                                                                                 |
+| strict_model_config              | 0                                                                                                                                                                                                         |
+| model_config_name                |                                                                                                                                                                                                           |
+| rate_limit                       | OFF                                                                                                                                                                                                       |
+| pinned_memory_pool_byte_size     | 268435456                                                                                                                                                                                                 |
+| cuda_memory_pool_byte_size{0}    | 67108864                                                                                                                                                                                                  |
+| min_supported_compute_capability | 6.0                                                                                                                                                                                                       |
+| strict_readiness                 | 1                                                                                                                                                                                                         |
+| exit_timeout                     | 30                                                                                                                                                                                                        |
+| cache_enabled                    | 0                                                                                                                                                                                                         |
++----------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+I0726 20:00:57.596683 1226 server.cc:312] "Waiting for in-flight requests to complete."
+I0726 20:00:57.596688 1226 server.cc:328] "Timeout 30: Found 0 model versions that have in-flight inferences"
+I0726 20:00:57.596800 1226 server.cc:343] "All models are stopped, unloading models"
+I0726 20:00:57.596803 1226 server.cc:352] "Timeout 30: Found 1 live models and 0 in-flight non-inference requests"
+I0726 20:00:58.596847 1226 server.cc:352] "Timeout 29: Found 1 live models and 0 in-flight non-inference requests"
+
+
+Storage layout: Host-only (single tier, CPU)
+-----------+----------+----------+-----------+-----------------
+   tier    |  table   | init(MB) |  peak(MB) | emb/opt peak(MB)
+-----------+----------+----------+-----------+-----------------
+host (CPU) | user_id  | 2        | 1.953     | 1.953 / 0       
+           | video_id | 19531.25 | 19531.25  | 19531.25 / 0    
+           | ---------+----------+-----------+-----------------
+           | TOTAL    | 19533.25 | 19533.203 | 19533.203 / 0   
+-----------+----------+----------+-----------+-----------------
+Optimizer type mismatch: adam != sgd. Will not load optimizer states.
+Optimizer type mismatch: adam != sgd. Will not load optimizer states.
+Optimizer type mismatch: adam != sgd. Will not load optimizer states.
+Optimizer type mismatch: adam != sgd. Will not load optimizer states.
+Optimizer type mismatch: adam != sgd. Will not load optimizer states.
+Optimizer type mismatch: adam != sgd. Will not load optimizer states.
+Optimizer type mismatch: adam != sgd. Will not load optimizer states.
+Optimizer type mismatch: adam != sgd. Will not load optimizer states.
+Optimizer type mismatch: adam != sgd. Will not load optimizer states.
+Optimizer type mismatch: adam != sgd. Will not load optimizer states.
+Optimizer type mismatch: adam != sgd. Will not load optimizer states.
+Optimizer type mismatch: adam != sgd. Will not load optimizer states.
+Optimizer type mismatch: adam != sgd. Will not load optimizer states.
+Optimizer type mismatch: adam != sgd. Will not load optimizer states.
+Optimizer type mismatch: adam != sgd. Will not load optimizer states.
+Optimizer type mismatch: adam != sgd. Will not load optimizer states.
+DEBUG: key='_embedding_collection._data_parallel_embedding_collection.embeddings.user_active_degree/follow_user_num_range/fans_user_num_range/friend_user_num_range/register_days_range/action_weights_weights' emb_table_names=['user_active_degree', 'follow_user_num_range', 'fans_user_num_range', 'friend_user_num_range', 'register_days_range', 'action_weights'] group_dim=512 tensor_shape=torch.Size([140800])
+DEBUG: all static configs: [('user_active_degree', 512), ('follow_user_num_range', 512), ('fans_user_num_range', 512), ('friend_user_num_range', 512), ('register_days_range', 512), ('action_weights', 512)]
+Cleaning up...
+I0726 20:00:59.596907 1226 server.cc:352] "Timeout 28: Found 1 live models and 0 in-flight non-inference requests"
+I0726 20:01:00.596981 1226 server.cc:352] "Timeout 27: Found 1 live models and 0 in-flight non-inference requests"
+I0726 20:01:01.597027 1226 server.cc:352] "Timeout 26: Found 1 live models and 0 in-flight non-inference requests"
+I0726 20:01:01.792403 1226 model_lifecycle.cc:636] "successfully unloaded 'hstu_sparse' version 1"
+I0726 20:01:02.597153 1226 server.cc:352] "Timeout 25: Found 0 live models and 0 in-flight non-inference requests"
+error: creating server: Internal - failed to load all models

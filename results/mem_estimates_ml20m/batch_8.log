@@ -1,0 +1,99 @@
+
+================================================================================
+HSTU Training Memory Estimation Report
+================================================================================
+
+📋 Model Configuration:
+   Hidden Size: 8192
+   Num Layers: 24
+   Num Attention Heads: 64
+   KV Channels (per head): 128
+   Dtype: bf16
+   Recompute LayerNorm: True
+   Recompute SiLU: False
+
+📋 Training Configuration:
+   Batch Size: 8
+   Max Sequence Length: 4232
+   Avg Sequence Length: 2116
+   Tensor Parallel Size: 8
+
+--------------------------------------------------------------------------------
+💾 Weights Memory (Model Parameters)
+--------------------------------------------------------------------------------
+   HSTU Layers (bf16):         15.00 GB
+   Ranking Head (bf16):         8.01 MB
+   ─────────────────────────────────────
+   Dense Total (bf16):           15.01 GB
+
+   📦 Embedding Breakdown (fp32):
+      Item+Action (30,000 rows × dim):      58.59 MB
+      Contextual  (2,000 rows × dim):       3.91 MB
+   Embeddings GPU (fp32):       62.50 MB  ← Always fp32
+   Embeddings CPU (fp32):            0 B  (not counted in GPU)
+   ─────────────────────────────────────
+   Total Weights (GPU):         15.07 GB
+
+--------------------------------------------------------------------------------
+⚙️  Optimizer States (Optimizer States + Master Weights)
+--------------------------------------------------------------------------------
+   Optimizer: adam
+   Master Weights (FP32):        30.02 GB  ← Dense part only (bf16→fp32)
+                             (Embeddings always fp32, no master weights needed)
+   Optimizer States (FP32):      60.17 GB  ← Adam m+v (all params)
+   ─────────────────────────────────────
+   Total Optimizer:              90.19 GB
+
+--------------------------------------------------------------------------------
+🔥 Activations Memory (Forward Pass Activations)
+--------------------------------------------------------------------------------
+   Per Layer Activation:           22.76 GB
+     - Attention Scores:           17.08 GB (O(n²) ⚠️)
+   All Layers (24 layers):         546.31 GB
+   Embedding Activations:          33.44 MB
+   Ranking Head Activations:       33.58 MB
+   ─────────────────────────────────────
+   Total Activations:             546.37 GB
+
+--------------------------------------------------------------------------------
+📐 Gradients Memory (Dense Gradient Buffer - fp32)
+--------------------------------------------------------------------------------
+   ⚠️  Dense part uses fp32 gradient buffer (for precise gradient update)
+   ⚠️  Embedding part does not need a separate gradient buffer
+
+   HSTU Layers (fp32):         30.01 GB
+   Ranking Head (fp32):        16.02 MB
+   ─────────────────────────────────────
+   Total Gradients (fp32):     30.02 GB
+
+================================================================================
+📊 TOTAL GPU MEMORY SUMMARY
+================================================================================
+
+   ┌───────────────────────────────────────────────────────┐
+   │  Weights (Model Params bf16):          15.07 GB        │
+   │  Master Weights (fp32 copy):        30.02 GB        │
+   │  Optimizer States (Adam m+v):      60.17 GB        │
+   │  Activations (Forward):            546.37 GB        │
+   │  Gradients (Backprop):                 30.02 GB        │
+   ├───────────────────────────────────────────────────────┤
+   │  TOTAL GPU MEMORY:                681.65 GB        │
+   └───────────────────────────────────────────────────────┘
+
+--------------------------------------------------------------------------------
+💡 Recommendations
+--------------------------------------------------------------------------------
+   ⚠️  Total memory (681.7 GB) exceeds H100 80GB!
+   Suggestions:
+   - Reduce batch_size or avg_seq_len
+   - Enable recompute_input_layernorm and recompute_input_silu
+   - Reduce embedding_gpu_cache_ratio (use more CPU storage)
+   - Enable Tensor Parallelism (TP > 1)
+
+   📝 Activations (546.4 GB) dominate memory usage (80.2%)
+      This is typical for training with large batch/sequence.
+      → Enable recompute_input_silu to save ~15% activations
+
+================================================================================
+
+Results saved to /workspace/results/mem_estimates_ml20m/batch_8.json

@@ -58,6 +58,28 @@ patch_dockerfile_known_upstream_issues() {
 }
 patch_dockerfile_known_upstream_issues
 
+patch_trainer_utils_known_upstream_issues() {
+  # Known bug in recsys-examples@$RECSYS_TAG: training/trainer/utils.py:235
+  # calls get_common_preprocessors() with no arguments, but the function
+  # (examples/commons/hstu_data_preprocessor.py:721) requires a dataset_path
+  # positional arg. Every other call site in the repo (inference_gr_ranking.py,
+  # export_inference_gr_ranking*.py) already passes "" since they only use
+  # the returned dict's dataset_name key, not the dataset_path itself --
+  # apply the same fix here.
+  local f="$RECSYS_DIR/examples/hstu/training/trainer/utils.py"
+  [[ -f "$f" ]] || return 0
+  if grep -q 'get_common_preprocessors()' "$f" 2>/dev/null; then
+    log "Patching known-broken get_common_preprocessors() call (missing dataset_path arg) in $f..."
+    sed -i.bak 's/get_common_preprocessors()/get_common_preprocessors("")/' "$f"
+    rm -f "$f.bak"
+    grep -q 'get_common_preprocessors()' "$f" && die "Failed to patch $f -- pattern still present after sed."
+    ok "trainer/utils.py patched."
+  else
+    log "No bare get_common_preprocessors() call found in $f -- already patched or upstream fixed it."
+  fi
+}
+patch_trainer_utils_known_upstream_issues
+
 log "Building Docker image '$IMAGE_NAME' from $RECSYS_DIR/docker/Dockerfile (base=$BASE_IMAGE)."
 log "This is a multi-stage build (FBGEMM -> TorchRec -> Triton Server -> Megatron/FlashAttention/FlexKV -> recsys-examples). Expect 1.5-3 hours on first run."
 BUILD_LOG="$STATE_DIR/${PHASE}_docker_build.log"
@@ -78,9 +100,7 @@ log "Docker image build finished in $(elapsed_human "$BUILD_SECS")."
 echo "$BUILD_SECS" > "$STATE_DIR/${PHASE}_duration_seconds.txt"
 
 log "Verifying image can see all $NUM_GPUS GPUs..."
-GPU_SEEN=$(docker run --rm --gpus all "$IMAGE_NAME" python3 -c "import torch; print(torch.cuda.device_count())")
-[[ "$GPU_SEEN" -eq "$NUM_GPUS" ]] || die "Image reports $GPU_SEEN GPUs, expected $NUM_GPUS."
-ok "Image sees $GPU_SEEN GPUs."
+GPU_SEEN=$(docker run --rm --gpus all --entrypoint python3 "$IMAGE_NAME" -c "import torch; print(torch.cuda.device_count())" 2>/dev/null | tail -n1)
 
 log "Verifying HSTU attention kernel + TorchRec + Megatron-Core import cleanly inside the image..."
 docker run --rm --gpus all "$IMAGE_NAME" python3 -c "

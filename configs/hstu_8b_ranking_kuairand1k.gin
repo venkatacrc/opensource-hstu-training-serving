@@ -30,7 +30,7 @@ TrainerArgs.pipeline_type = "prefetch"
 TrainerArgs.enable_balanced_shuffler = True
 
 DatasetArgs.dataset_name = 'kuairand-1k'
-DatasetArgs.max_history_seqlen = 4096
+DatasetArgs.max_history_seqlen = 2048
 DatasetArgs.max_num_candidates = 100
 DatasetArgs.shuffle = False
 NetworkArgs.disable_contextual_mask = True
@@ -42,10 +42,11 @@ NetworkArgs.hidden_size = 8192
 NetworkArgs.kv_channels = 128
 NetworkArgs.item_embedding_dim = 512
 NetworkArgs.contextual_embedding_dim = 512
-NetworkArgs.kernel_backend = 'cutlass'
+NetworkArgs.kernel_backend = 'triton'
 NetworkArgs.target_group_size = 1
 NetworkArgs.recompute_input_layernorm = True
-NetworkArgs.recompute_input_silu = False
+NetworkArgs.recompute_input_silu = True
+NetworkArgs.sequence_parallel = True
 
 RankingArgs.prediction_head_arch = [1024, 8]
 RankingArgs.prediction_head_bias = True
@@ -56,4 +57,4 @@ OptimizerArgs.learning_rate = 1e-3
 
 # TP=1 (default) -- see scope note above. scripts/04_size_model.sh /
 # 05_train.sh run this one with DP=8 (8 independent replicas) instead of TP=8.
-TensorModelParallelArgs.tensor_model_parallel_size = 1
+TensorModelParallelArgs.tensor_model_parallel_size = 4

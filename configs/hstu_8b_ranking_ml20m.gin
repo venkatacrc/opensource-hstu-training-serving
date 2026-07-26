@@ -47,7 +47,7 @@ NetworkArgs.hidden_size = 8192
 NetworkArgs.kv_channels = 128              # 64 * 128 = 8192 = hidden_size
 NetworkArgs.item_embedding_dim = 512
 NetworkArgs.contextual_embedding_dim = 512
-NetworkArgs.kernel_backend = 'cutlass'
+NetworkArgs.kernel_backend = 'triton'
 NetworkArgs.target_group_size = 1
 # Recompute trades a small perf hit for large activation-memory savings at
 # this scale; kept on for the initial smoke test, revisited once memory
