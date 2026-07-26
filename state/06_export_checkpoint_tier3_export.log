@@ -1,0 +1,84 @@
+
+=============
+== PyTorch ==
+=============
+
+NVIDIA Release 26.05 (build 313520559)
+PyTorch Version 2.12.0a0+5aff392
+Container image Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2014-2024 Facebook Inc.
+Copyright (c) 2011-2014 Idiap Research Institute (Ronan Collobert)
+Copyright (c) 2012-2014 Deepmind Technologies    (Koray Kavukcuoglu)
+Copyright (c) 2011-2012 NEC Laboratories America (Koray Kavukcuoglu)
+Copyright (c) 2011-2013 NYU                      (Clement Farabet)
+Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
+Copyright (c) 2006      Idiap Research Institute (Samy Bengio)
+Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
+Copyright (c) 2015      Google Inc.
+Copyright (c) 2015      Yangqing Jia
+Copyright (c) 2013-2016 The Caffe contributors
+All rights reserved.
+
+Various files include modifications (c) NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+
+GOVERNING TERMS: The software and materials are governed by the NVIDIA Software License Agreement
+(found at https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-software-license-agreement/)
+and the Product-Specific Terms for NVIDIA AI Products
+(found at https://www.nvidia.com/en-us/agreements/enterprise-software/product-specific-terms-for-ai-products/).
+
+NOTE: CUDA Forward Compatibility mode ENABLED.
+  Using CUDA 13.2 driver version 595.58.03 with kernel driver version 580.159.04.
+  See https://docs.nvidia.com/deploy/cuda-compatibility/ for details.
+
+NOTE: Mellanox network driver detected, but NVIDIA peer memory driver not
+      detected.  Multi-node communication performance may be reduced.
+
+WARNING: temporarily disabled some autotune configs for CUDA 12.8+
+NOTE! Installing ujson may make loading annotations faster.
+[INFO] Total max sequence length: 4202
+[ERROR] inference_emb_ops.so not found at /workspace/recsys-examples/corelib/dynamicemb/torch_binding_build/.
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/dist-packages/torch/_ops.py", line 1509, in load_library
+    ctypes.CDLL(path)
+  File "/usr/lib/python3.12/ctypes/__init__.py", line 379, in __init__
+    self._handle = _dlopen(self._name, mode)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+OSError: /workspace/recsys-examples/corelib/dynamicemb/torch_binding_build/inference_emb_ops.so: cannot open shared object file: No such file or directory
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/recsys-examples/examples/hstu/modules/exportable_embedding.py", line 46, in _load_inference_emb_ops
+    torch.ops.load_library(lib_path)
+  File "/usr/local/lib/python3.12/dist-packages/torch/_ops.py", line 1511, in load_library
+    raise OSError(f"Could not load this library: {path}") from e
+OSError: Could not load this library: /workspace/recsys-examples/corelib/dynamicemb/torch_binding_build/inference_emb_ops.so
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/recsys-examples/examples/hstu/./inference_aoti/export_inference_gr_ranking_kvcache.py", line 470, in export_inference_gr_ranking
+    model = get_exportable_model_for_inference(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/recsys-examples/examples/hstu/./inference_aoti/export_inference_gr_ranking_kvcache.py", line 351, in get_exportable_model_for_inference
+    from modules.exportable_embedding import apply_inference_sparse
+  File "/workspace/recsys-examples/examples/hstu/modules/exportable_embedding.py", line 61, in <module>
+    _load_inference_emb_ops()  # registers torch.ops.INFERENCE_EMB.* before import dynamicemb
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/recsys-examples/examples/hstu/modules/exportable_embedding.py", line 54, in _load_inference_emb_ops
+    raise RuntimeError(f"[WARN] Failed to load {lib_path}: {_e}")
+RuntimeError: [WARN] Failed to load /workspace/recsys-examples/corelib/dynamicemb/torch_binding_build/inference_emb_ops.so: Could not load this library: /workspace/recsys-examples/corelib/dynamicemb/torch_binding_build/inference_emb_ops.so
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/recsys-examples/examples/hstu/./inference_aoti/export_inference_gr_ranking_kvcache.py", line 792, in <module>
+    export_inference_gr_ranking(
+  File "/workspace/recsys-examples/examples/hstu/./inference_aoti/export_inference_gr_ranking_kvcache.py", line 765, in export_inference_gr_ranking
+    shutdown_flexkv_runtime_and_server(model)
+  File "/workspace/recsys-examples/examples/hstu/./inference_aoti/export_inference_gr_ranking_kvcache.py", line 145, in shutdown_flexkv_runtime_and_server
+    torch.ops.kvcache_manager_ops.shutdown_runtime(
+  File "/usr/local/lib/python3.12/dist-packages/torch/_ops.py", line 1275, in __call__
+    return self._op(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Timed out sending FlexKV request to ipc:///tmp/recsys_kvcache_cpp_runtime/server.sock

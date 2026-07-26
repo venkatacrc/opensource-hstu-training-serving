@@ -1,0 +1,1 @@
+/workspace/checkpoints/hstu_8b_kuairand1k/iter500

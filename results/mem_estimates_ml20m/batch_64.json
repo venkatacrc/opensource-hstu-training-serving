@@ -1,0 +1,67 @@
+{
+  "gin_config": null,
+  "model_config": {
+    "hidden_size": 8192,
+    "num_layers": 24,
+    "num_attention_heads": 64,
+    "kv_channels": 128,
+    "dtype": "bf16",
+    "recompute_input_layernorm": true,
+    "recompute_input_silu": false
+  },
+  "training_config": {
+    "batch_size": 64,
+    "max_seq_len": 4232,
+    "avg_seq_len": 2116,
+    "tensor_parallel_size": 8
+  },
+  "memory_breakdown": {
+    "weights": {
+      "hstu_layers": 16109666304,
+      "hstu_layers_dtype": "bf16",
+      "embeddings_gpu": 65536000,
+      "embeddings_gpu_dtype": "fp32",
+      "embeddings_cpu": 0,
+      "ranking_head": 8397984,
+      "ranking_head_dtype": "bf16",
+      "total_dense": 16118064288,
+      "total_gpu": 16183600288
+    },
+    "embedding_details": {
+      "item_rows": 30000,
+      "contextual_rows": 2000,
+      "item_total": 61440000,
+      "contextual_total": 4096000,
+      "total": 65536000
+    },
+    "optimizer_states": {
+      "optimizer": "adam",
+      "master_weights": 32236128576,
+      "optimizer_states": 64603329152,
+      "total": 96839457728
+    },
+    "activations": {
+      "per_layer": 195530588160,
+      "all_layers": 4692734115840,
+      "embedding": 280494080,
+      "ranking_head": 281681920,
+      "attention_scores_per_layer": 146717278208,
+      "total": 4693296291840
+    },
+    "gradients": {
+      "layer_weight_grads": 32219332608,
+      "ranking_weight_grads": 16795968,
+      "total": 32236128576,
+      "dtype": "fp32"
+    },
+    "total": {
+      "weights": 16183600288,
+      "master_weights": 32236128576,
+      "optimizer_states": 64603329152,
+      "optimizer_total": 96839457728,
+      "activations": 4693296291840,
+      "gradients": 32236128576,
+      "total_gpu_memory": 4838555478432
+    }
+  }
+}

@@ -58,7 +58,7 @@ log "############################################################"
 run_phase() {
   local script="$1"; shift
   log ">>> Running $script $*"
-  bash "$SCRIPTS_DIR/$script" "$@"
+  bash "$SCRIPTS_DIR/$script" "$@" || die "$script failed -- see logs above / state/ for details."
 }
 
 # --- Phase 0: preflight -------------------------------------------------------
@@ -88,12 +88,16 @@ fi
 run_phase 03_preprocess_data.sh
 
 # --- Phase 4/5: primary (ml-20m, TP=8) training ------------------------------
-SIZE_DATASET="$PRIMARY_DATASET" bash "$SCRIPTS_DIR/04_size_model.sh"
-TRAIN_DATASET="$PRIMARY_DATASET" TRAIN_HOURS="$TRAIN_BUDGET_HOURS" bash "$SCRIPTS_DIR/05_train.sh"
+SIZE_DATASET="$PRIMARY_DATASET" bash "$SCRIPTS_DIR/04_size_model.sh" \
+  || die "04_size_model.sh ($PRIMARY_DATASET) failed."
+TRAIN_DATASET="$PRIMARY_DATASET" TRAIN_HOURS="$TRAIN_BUDGET_HOURS" bash "$SCRIPTS_DIR/05_train.sh" \
+  || die "05_train.sh ($PRIMARY_DATASET) failed."
 
 # --- Phase 4/5: secondary (kuairand-1k, TP=1) training for the serving bench -
-SIZE_DATASET="$SECONDARY_DATASET" bash "$SCRIPTS_DIR/04_size_model.sh"
-TRAIN_DATASET="$SECONDARY_DATASET" TRAIN_HOURS="$SECONDARY_TRAIN_BUDGET_HOURS" bash "$SCRIPTS_DIR/05_train.sh"
+SIZE_DATASET="$SECONDARY_DATASET" bash "$SCRIPTS_DIR/04_size_model.sh" \
+  || die "04_size_model.sh ($SECONDARY_DATASET) failed."
+TRAIN_DATASET="$SECONDARY_DATASET" TRAIN_HOURS="$SECONDARY_TRAIN_BUDGET_HOURS" bash "$SCRIPTS_DIR/05_train.sh" \
+  || die "05_train.sh ($SECONDARY_DATASET) failed."
 
 # --- Phase 6/7: export + serving benchmark -----------------------------------
 run_phase 06_export_checkpoint.sh
@@ -107,7 +111,7 @@ if command -v python3 >/dev/null 2>&1 && python3 -m venv "$REPORT_VENV" 2>/dev/n
   source "$REPORT_VENV/bin/activate"
   pip install --quiet --upgrade pip
   pip install --quiet matplotlib pandas
-  python3 "$SCRIPTS_DIR/08_generate_report.py"
+  python3 "$SCRIPTS_DIR/08_generate_report.py" || die "Report generation failed."
   deactivate
 else
   warn "Could not create a host venv for the report generator; trying system python3 directly (charts may be skipped if matplotlib isn't installed)."

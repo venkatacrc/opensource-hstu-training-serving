@@ -1,0 +1,4 @@
+total 12
+drwxr-xr-x 3 root    root   4096 Jul 26 12:42 .
+drwxrwxr-x 4 nvadmin docker 4096 Jul 25 23:03 ..
+drwxr-xr-x 4 root    root   4096 Jul 26 12:42 iter500

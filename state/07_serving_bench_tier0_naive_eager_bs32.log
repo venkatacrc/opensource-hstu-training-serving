@@ -1,0 +1,49 @@
+
+=============
+== PyTorch ==
+=============
+
+NVIDIA Release 26.05 (build 313520559)
+PyTorch Version 2.12.0a0+5aff392
+Container image Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2014-2024 Facebook Inc.
+Copyright (c) 2011-2014 Idiap Research Institute (Ronan Collobert)
+Copyright (c) 2012-2014 Deepmind Technologies    (Koray Kavukcuoglu)
+Copyright (c) 2011-2012 NEC Laboratories America (Koray Kavukcuoglu)
+Copyright (c) 2011-2013 NYU                      (Clement Farabet)
+Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
+Copyright (c) 2006      Idiap Research Institute (Samy Bengio)
+Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
+Copyright (c) 2015      Google Inc.
+Copyright (c) 2015      Yangqing Jia
+Copyright (c) 2013-2016 The Caffe contributors
+All rights reserved.
+
+Various files include modifications (c) NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+
+GOVERNING TERMS: The software and materials are governed by the NVIDIA Software License Agreement
+(found at https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-software-license-agreement/)
+and the Product-Specific Terms for NVIDIA AI Products
+(found at https://www.nvidia.com/en-us/agreements/enterprise-software/product-specific-terms-for-ai-products/).
+
+NOTE: CUDA Forward Compatibility mode ENABLED.
+  Using CUDA 13.2 driver version 595.58.03 with kernel driver version 580.159.04.
+  See https://docs.nvidia.com/deploy/cuda-compatibility/ for details.
+
+NOTE: Mellanox network driver detected, but NVIDIA peer memory driver not
+      detected.  Multi-node communication performance may be reduced.
+
+NOTE! Installing ujson may make loading annotations faster.
+WARNING: temporarily disabled some autotune configs for CUDA 12.8+
+Traceback (most recent call last):
+  File "/workspace/host_repo/scripts/lib/bench_tier01.py", line 179, in <module>
+    main()
+  File "/workspace/host_repo/scripts/lib/bench_tier01.py", line 77, in main
+    model = get_inference_hstu_model(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/recsys-examples/examples/hstu/inference/inference_gr_ranking.py", line 230, in get_inference_hstu_model
+    model = get_inference_ranking_gr(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/recsys-examples/examples/hstu/model/inference_ranking_gr.py", line 206, in get_inference_ranking_gr
+    ebc_config.dim == hstu_config.hidden_size
+AssertionError: hstu layer hidden size should equal to embedding dim

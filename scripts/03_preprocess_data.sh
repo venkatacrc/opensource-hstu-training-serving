@@ -16,6 +16,31 @@ log "=== Phase 3: Preprocess datasets inside container ($PRIMARY_DATASET, $SECON
 
 docker image inspect "$IMAGE_NAME" >/dev/null 2>&1 || die "Image '$IMAGE_NAME' not found -- run scripts/01_build_env.sh first."
 
+patch_preprocessor_known_upstream_issues() {
+  # Known bug: examples/commons/hstu_data_preprocessor.py's
+  # preprocess_inference() uses the pandas fillna(method="ffill")/"bfill"
+  # calling convention, which was removed in the pandas version installed
+  # in this NGC image (pandas 2.x+). Replace with the modern .ffill()/.bfill()
+  # equivalents, which are functionally identical.
+  local f="$RECSYS_DIR/examples/commons/hstu_data_preprocessor.py"
+  [[ -f "$f" ]] || return 0
+  if grep -qE 'fillna\(method=' "$f" 2>/dev/null; then
+    log "Patching known-broken fillna(method=...) calls in $f (removed pandas API)..."
+    sed -i.bak \
+      -e 's/\.fillna(method="ffill")/\.ffill()/g' \
+      -e "s/\.fillna(method='ffill')/\.ffill()/g" \
+      -e 's/\.fillna(method="bfill")/\.bfill()/g' \
+      -e "s/\.fillna(method='bfill')/\.bfill()/g" \
+      "$f"
+    rm -f "$f.bak"
+    grep -qE 'fillna\(method=' "$f" && die "Failed to patch $f -- pattern still present after sed."
+    ok "Preprocessor patched."
+  else
+    log "No fillna(method=...) pattern found in $f -- already patched or upstream fixed it."
+  fi
+}
+patch_preprocessor_known_upstream_issues
+
 for ds in "$PRIMARY_DATASET" "$SECONDARY_DATASET"; do
   log "Preprocessing $ds inside container..."
   docker_gpu_run bash -lc "
