@@ -105,9 +105,10 @@ fi
 
 if [[ "${LAUNCH:-0}" -eq 1 ]]; then
   log "Launching detached training container '$TRAIN_CONTAINER'..."
+  # No $RECSYS_DIR bind-mount over /workspace/recsys-examples -- see the
+  # explanatory comment above docker_gpu_run() in lib/common.sh.
   docker run -d --name "$TRAIN_CONTAINER" --gpus all --ipc=host \
     --ulimit memlock=-1 --ulimit stack=67108864 --shm-size=64g \
-    -v "$RECSYS_DIR:/workspace/recsys-examples" \
     -v "$DATA_DIR:/workspace/data" \
     -v "$CKPT_DIR:/workspace/checkpoints" \
     -v "$REPO_ROOT/configs:/workspace/configs" \

@@ -70,12 +70,27 @@ require_cmd() {
 }
 
 # --- docker helpers -----------------------------------------------------------
+# IMPORTANT: none of these helpers bind-mount $RECSYS_DIR onto
+# /workspace/recsys-examples inside the container. docker/Dockerfile's final
+# `build` stage COPYs that exact (already-patched, see
+# patch_*_known_upstream_issues() in scripts/01_build_env.sh) tree into the
+# image at build time, AND compiles several artifacts directly into it that
+# only exist inside the image, never in the host git checkout:
+# corelib/dynamicemb/torch_binding_build/inference_emb_ops.so, triton_libs/,
+# inference_aoti/cpp_inference/build/, inference_aoti/nve_init_hook/build/.
+# An earlier revision of this file DID bind-mount $RECSYS_DIR here "to be
+# safe" -- that silently shadowed all of those image-only compiled artifacts
+# with the plain (uncompiled) host source tree, which is why Tier 3
+# (AOTInductor C++ export) failed with
+# "inference_emb_ops.so not found at .../torch_binding_build/" even though
+# the Dockerfile build step that produces it had already succeeded. Fixed by
+# simply not mounting over that path -- there is no longer any reason to
+# (see git history / docs/RUNBOOK.md#tier-3-troubleshooting for the full story).
 docker_gpu_run() {
-  # Run a one-shot command in the benchmark image with all GPUs, repo mounted.
+  # Run a one-shot command in the benchmark image with all GPUs.
   # -i so callers can pipe a heredoc into e.g. `docker_gpu_run python3 -`.
   docker run --rm -i --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 \
     --shm-size=32g \
-    -v "$RECSYS_DIR:/workspace/recsys-examples" \
     -v "$DATA_DIR:/workspace/data" \
     -v "$CKPT_DIR:/workspace/checkpoints" \
     -v "$EXPORT_DIR:/workspace/export" \
@@ -92,7 +107,6 @@ docker_gpu_run_hostnet() {
   # reach a Triton server bound to localhost in another --network host container.
   docker run --rm -i --gpus all --network host --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 \
     --shm-size=32g \
-    -v "$RECSYS_DIR:/workspace/recsys-examples" \
     -v "$DATA_DIR:/workspace/data" \
     -v "$CKPT_DIR:/workspace/checkpoints" \
     -v "$EXPORT_DIR:/workspace/export" \
@@ -110,7 +124,6 @@ docker_gpu_daemon() {
     docker run -d --name "$CONTAINER_NAME" --gpus all --ipc=host \
       --ulimit memlock=-1 --ulimit stack=67108864 --shm-size=32g \
       --network host \
-      -v "$RECSYS_DIR:/workspace/recsys-examples" \
       -v "$DATA_DIR:/workspace/data" \
       -v "$CKPT_DIR:/workspace/checkpoints" \
       -v "$EXPORT_DIR:/workspace/export" \

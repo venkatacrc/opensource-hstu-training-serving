@@ -44,8 +44,13 @@ HIDDEN_SIZE=$(gin_int 'NetworkArgs\.hidden_size')
 NUM_LAYERS=$(gin_int 'NetworkArgs\.num_layers')
 NUM_HEADS=$(gin_int 'NetworkArgs\.num_attention_heads')
 KV_CHANNELS=$(gin_int 'NetworkArgs\.kv_channels')
+# item/contextual_embedding_dim default to hidden_size when not explicitly
+# overridden in the gin file (e.g. hstu_8b_ranking_kuairand1k.gin relies on
+# this default -- every serving tier requires embedding_dim == hidden_size).
 ITEM_EMB_DIM=$(gin_int 'NetworkArgs\.item_embedding_dim')
 CTX_EMB_DIM=$(gin_int 'NetworkArgs\.contextual_embedding_dim')
+ITEM_EMB_DIM="${ITEM_EMB_DIM:-$HIDDEN_SIZE}"
+CTX_EMB_DIM="${CTX_EMB_DIM:-$HIDDEN_SIZE}"
 MAX_HIST=$(gin_int 'DatasetArgs\.max_history_seqlen')
 MAX_CAND=$(gin_int 'DatasetArgs\.max_num_candidates')
 MAX_SEQ_LEN=$(( (MAX_HIST + MAX_CAND) * 2 + 8 ))   # +8 slack for contextual tokens

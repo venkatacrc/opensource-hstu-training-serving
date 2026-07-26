@@ -1,20 +1,59 @@
-# HSTU-8B ranking model on KuaiRand-1K (public dataset) -- SECONDARY dataset run.
+# HSTU ranking model on KuaiRand-1K (public dataset) -- SECONDARY dataset run.
+# Drives the Phase 6/7 serving benchmark ONLY; the "train a 7-10B parameter
+# model" deliverable is satisfied by the PRIMARY ml-20m run
+# (hstu_8b_ranking_ml20m.gin, TP=8, ~8.05B dense params). See docs/ARCHITECTURE.md
+# for the full writeup of why the two runs intentionally differ in size.
 #
-# Same dense backbone as hstu_8b_ranking_ml20m.gin (~8.05B params) but a very
-# different sequence-length / multi-task profile (KuaiRand-1K: 1000 users,
-# ~4.4M items, 8 ranking tasks, much longer per-user histories).
+# IMPORTANT SCOPE NOTE / REVISION HISTORY:
+# All 4 serving tiers (Tiers 0-3: naive eager, optimized KV-cache, Triton
+# Python backend, Triton AOTInductor C++) are built on top of upstream
+# reference code (inference/inference_gr_ranking.py, model/inference_ranking_gr.py,
+# the Triton Python backend, the AOTI export path) that hard-codes TWO
+# assumptions this file must satisfy exactly:
+#   1. tensor_model_parallel_size = 1 (checkpoint-resharding for inference is
+#      not supported by any of the 4 tiers -- confirmed by
+#      model/inference_ranking_gr.py loading raw, unsharded state dicts).
+#   2. item_embedding_dim == contextual_embedding_dim == hidden_size (confirmed
+#      by the hard assertion `ebc_config.dim == hstu_config.hidden_size` in
+#      model/inference_ranking_gr.py:get_inference_ranking_gr -- narrower
+#      embedding dims than hidden_size, as ml-20m's config uses, are only
+#      supported on the TRAINING path, not any of the 4 inference/serving paths).
 #
-# IMPORTANT SCOPE NOTE: this checkpoint is the one used for the Phase 6/7
-# serving benchmark (scripts/06_export_checkpoint.sh, scripts/07_serving_bench.sh),
-# NOT the primary ml-20m training run. The upstream inference examples
-# (inference/inference_gr_ranking.py, the Triton Python backend, and the AOTI
-# export path) hard-code their dataset/embedding assumptions to "kuairand-1k"
-# and are demonstrated end-to-end only with a **tensor_model_parallel_size=1**
-# checkpoint. Using TP=1 here sidesteps checkpoint-resharding risk entirely and
-# matches the officially-supported path, at the cost of a separate, shorter
-# training run (see SECONDARY_TRAIN_BUDGET_HOURS in config.env) distinct from
-# the long TP=8 ml-20m run. Both runs use the identical dense architecture, so
-# training MFU/TFLOPS numbers are still comparable between the two datasets.
+# An earlier revision of this file set tensor_model_parallel_size=4 (to work
+# around an out-of-memory error when training at TP=1 with the full
+# 8.05B-param/hidden_size=8192 dense backbone -- see the memory math below for
+# why that OOM was real, not a fluke) and left item/contextual_embedding_dim=512
+# from the upstream demo config. Both of those independently break every
+# serving tier once you get far enough to hit them:
+#   - TP=4 vs. the inference code's hard TP=1 assumption: silently wrong
+#     results at best, shape errors at worst (never actually hit in testing
+#     because embedding_dim was the first assertion encountered).
+#   - item_embedding_dim=512 != hidden_size=8192: hit immediately as
+#     `AssertionError: hstu layer hidden size should equal to embedding dim`
+#     in model/inference_ranking_gr.py (Tiers 0/1), and as a `RuntimeError`
+#     state_dict size mismatch once Tier 2's config.pbtxt was pointed at this
+#     file instead of upstream's tiny hidden_size=512 demo config.
+#
+# FIX: go back to TP=1 (required for serving) *and* shrink the dense backbone
+# (hidden_size 8192->3072, keep num_layers=24) so the fully-unsharded weights +
+# fp32 Adam optimizer state + fp32 gradients actually fit in one GPU's HBM --
+# TP=8 lets the ml-20m run shard that same footprint 8 ways, but TP=1 here has
+# no such luxury. Rough math (bytes/dense-param, unsharded: 2 bf16 weight + 4
+# fp32 master-weight + 8 fp32 Adam moments + 4 fp32 grad = 18 B/param):
+#   hidden=8192, 24 layers -> ~8.05e9 params * 18B ~= 145GB/GPU just for
+#     weights+optimizer+grads, before a single activation or embedding byte --
+#     this is *why* TP=1 OOM'd, independent of anything else in this file.
+#   hidden=3072, 24 layers -> 5*3072^2*24 ~= 1.13e9 params * 18B ~= 19GB/GPU,
+#     leaving ample headroom (>100GB) for activations + DynamicEmb's
+#     (mostly host-resident, per the successful primary run's own logs)
+#     embedding tables. Embedding dim now equals hidden_size (3072) per
+#     requirement 2 above, so the "narrow embedding" override is removed
+#     entirely (item/contextual_embedding_dim default to hidden_size).
+# scripts/04_size_model.sh re-validates this empirically (projection + smoke
+# test) before committing to a full run -- if it still doesn't fit on your
+# hardware, follow its printed instructions to shrink train_batch_size first;
+# only reduce hidden_size/num_layers further as a last resort (and re-derive
+# the constants above if you do).
 
 TrainerArgs.train_batch_size = 8           # tuned by 04_size_model.sh (longer sequences -> smaller batch)
 TrainerArgs.eval_batch_size = 8
@@ -37,16 +76,19 @@ NetworkArgs.disable_contextual_mask = True
 
 NetworkArgs.dtype_str = "bfloat16"
 NetworkArgs.num_layers = 24
-NetworkArgs.num_attention_heads = 64
-NetworkArgs.hidden_size = 8192
-NetworkArgs.kv_channels = 128
-NetworkArgs.item_embedding_dim = 512
-NetworkArgs.contextual_embedding_dim = 512
+NetworkArgs.num_attention_heads = 24
+NetworkArgs.hidden_size = 3072             # downsized from 8192 -- see memory math above
+NetworkArgs.kv_channels = 128              # 24 * 128 = 3072 = hidden_size
+# item_embedding_dim / contextual_embedding_dim intentionally NOT overridden:
+# they default to hidden_size, which every serving tier hard-assumes (see
+# scope note above). Do not narrow these for this file.
 NetworkArgs.kernel_backend = 'triton'
 NetworkArgs.target_group_size = 1
 NetworkArgs.recompute_input_layernorm = True
 NetworkArgs.recompute_input_silu = True
-NetworkArgs.sequence_parallel = True
+# sequence_parallel shards LayerNorm/dropout residuals across the TP group --
+# meaningless (and potentially unsupported) at TP=1, unlike the ml-20m run.
+NetworkArgs.sequence_parallel = False
 
 RankingArgs.prediction_head_arch = [1024, 8]
 RankingArgs.prediction_head_bias = True
@@ -55,6 +97,8 @@ RankingArgs.num_tasks = 8
 OptimizerArgs.optimizer_str = 'adam'
 OptimizerArgs.learning_rate = 1e-3
 
-# TP=1 (default) -- see scope note above. scripts/04_size_model.sh /
-# 05_train.sh run this one with DP=8 (8 independent replicas) instead of TP=8.
-TensorModelParallelArgs.tensor_model_parallel_size = 4
+# TP=1 -- REQUIRED, not a preference: every serving tier's inference code
+# loads this checkpoint's state dict directly with no resharding step (see
+# scope note above). scripts/04_size_model.sh / 05_train.sh run this one with
+# DP=8 (8 independent data-parallel replicas) instead of ml-20m's TP=8.
+TensorModelParallelArgs.tensor_model_parallel_size = 1
