@@ -16,6 +16,28 @@ source "$REPO_ROOT/config.env"
 mkdir -p "$WORK_DIR" "$DATA_DIR" "$CKPT_DIR" "$EXPORT_DIR" "$TRITON_REPO_DIR" \
          "$REPO_ROOT/state" "$REPO_ROOT/results"
 
+# --- ownership sanity check ---------------------------------------------------
+# state/ and results/ are written directly by the host bash process (plain `>`
+# redirects, before any `docker run` even starts) -- unlike workdir/{data,
+# checkpoints,export} which are bind-mounted *into* containers that run as
+# root by default and therefore legitimately end up root-owned on the host
+# regardless of who invoked the script. If state/ or results/ contain
+# root-owned files, the near-certain cause is a *previous* invocation having
+# been run with `sudo` (e.g. following 00_preflight.sh's own suggested
+# fallback of "...or run with sudo" for a docker-group-membership issue that
+# has since been fixed properly). Left unchecked, this fails confusingly deep
+# inside a script (e.g. a `Permission denied` on an unrelated log-redirect
+# line) while silently leaving *stale* prior-run content in place, which is
+# easy to mistake for fresh output. Fail fast, once, with the exact fix.
+for _d in "$REPO_ROOT/state" "$REPO_ROOT/results"; do
+  _unwritable=$(find "$_d" -mindepth 1 ! -writable -print -quit 2>/dev/null)
+  if [[ -n "$_unwritable" ]]; then
+    die "'$_unwritable' is not writable by $(whoami) -- likely leftover from an earlier run of this pipeline under 'sudo'. Fix ownership once, then re-run:
+    sudo chown -R \$(id -u):\$(id -g) '$REPO_ROOT/state' '$REPO_ROOT/results'"
+  fi
+done
+unset _d _unwritable
+
 # --- logging ----------------------------------------------------------------
 _c_reset='\033[0m'; _c_blue='\033[1;34m'; _c_green='\033[1;32m'; _c_yellow='\033[1;33m'; _c_red='\033[1;31m'
 

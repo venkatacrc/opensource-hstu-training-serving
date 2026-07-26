@@ -320,6 +320,34 @@ Re-run any time after any phase to refresh the report with partial results:
 python3 scripts/08_generate_report.py
 ```
 
+## Recovering from "Permission denied" writing to state/ or results/
+
+If any script dies with `Permission denied` writing to a file under `state/`
+or `results/` (or `lib/common.sh`'s startup ownership check catches it first
+with a clearer message), the near-certain cause is that a **previous**
+invocation of some phase script was run with `sudo` -- most often as a
+tempting-but-wrong fix for `00_preflight.sh` reporting the docker daemon
+unreachable before `newgrp docker` / a fresh login had taken effect. `state/`
+and `results/` are written directly by the host bash process (plain `>`
+redirects, before `docker run` even starts), so they're always meant to be
+owned by whatever user runs the pipeline -- if a `sudo` run slips in even
+once, its root-owned files can no longer be overwritten by subsequent
+non-sudo runs, and the stale content silently lingers (easy to mistake for
+current output when tailing a log).
+
+Fix once, then re-run the phase that failed (no need to reset any `.done`
+markers -- the script died before marking success):
+
+```bash
+sudo chown -R $(id -u):$(id -g) state/ results/
+```
+
+(Do **not** chown `workdir/{data,checkpoints,export}` the same way without
+thinking -- those are bind-mounted into containers that run as root by
+default, so root ownership there is normal/expected and chowning them to
+your user can make them unwritable/unreadable from inside the *next*
+container run instead.)
+
 ## Recovering from an incompatible secondary (kuairand-1k) checkpoint
 
 If you'd previously trained the secondary/serving checkpoint against a gin

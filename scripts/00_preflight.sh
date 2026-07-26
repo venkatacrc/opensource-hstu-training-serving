@@ -55,7 +55,7 @@ else
 fi
 
 if ! docker info >/dev/null 2>&1; then
-  fail "docker daemon not reachable by current user. Try: 'newgrp docker' then re-run this script, or run with sudo."
+  fail "docker daemon not reachable by current user ($USER). Fix group membership instead of reaching for sudo: run 'newgrp docker' (or log out/in) then re-run this script. Do NOT run the pipeline scripts themselves with sudo even as a one-off -- doing so leaves root-owned files under state/ and results/ that silently break later non-sudo runs with a confusing 'Permission denied' (see lib/common.sh's ownership check, and docs/RUNBOOK.md, if you hit that)."
 fi
 
 # --- 4. NVIDIA Container Toolkit --------------------------------------------------
