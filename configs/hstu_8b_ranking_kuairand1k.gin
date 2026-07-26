@@ -21,10 +21,9 @@
 #
 # An earlier revision of this file set tensor_model_parallel_size=4 (to work
 # around an out-of-memory error when training at TP=1 with the full
-# 8.05B-param/hidden_size=8192 dense backbone -- see the memory math below for
-# why that OOM was real, not a fluke) and left item/contextual_embedding_dim=512
-# from the upstream demo config. Both of those independently break every
-# serving tier once you get far enough to hit them:
+# 8.05B-param/hidden_size=8192 dense backbone) and left item/contextual_
+# embedding_dim=512 from the upstream demo config. Both of those independently
+# break every serving tier once you get far enough to hit them:
 #   - TP=4 vs. the inference code's hard TP=1 assumption: silently wrong
 #     results at best, shape errors at worst (never actually hit in testing
 #     because embedding_dim was the first assertion encountered).
@@ -34,26 +33,39 @@
 #     state_dict size mismatch once Tier 2's config.pbtxt was pointed at this
 #     file instead of upstream's tiny hidden_size=512 demo config.
 #
-# FIX: go back to TP=1 (required for serving) *and* shrink the dense backbone
-# (hidden_size 8192->3072, keep num_layers=24) so the fully-unsharded weights +
-# fp32 Adam optimizer state + fp32 gradients actually fit in one GPU's HBM --
-# TP=8 lets the ml-20m run shard that same footprint 8 ways, but TP=1 here has
-# no such luxury. Rough math (bytes/dense-param, unsharded: 2 bf16 weight + 4
-# fp32 master-weight + 8 fp32 Adam moments + 4 fp32 grad = 18 B/param):
+# A THIRD, independent hard constraint (found the hard way -- see below)
+# further bounds hidden_size for this specific file:
+#   3. DynamicEmb's embedding-gather kernel refuses any embedding vector
+#      wider than 1024: `RuntimeError: dynamic emb does not support emb
+#      vector size > 1024` (raised in gather_embedding(), hit at the first
+#      real forward pass -- i.e. only once you get well past config parsing
+#      and model construction). Combined with requirement 2 above
+#      (item_embedding_dim == hidden_size), this caps hidden_size at 1024,
+#      independent of any memory/OOM consideration.
+#
+# FIX: TP=1 (required for serving) *and* hidden_size capped at exactly 1024
+# (the DynamicEmb ceiling from requirement 3), which also trivially satisfies
+# the TP=1 memory requirement (fully-unsharded weights + fp32 Adam optimizer
+# state + fp32 gradients must fit in one GPU's HBM -- TP=8 lets the ml-20m run
+# shard that same footprint 8 ways, but TP=1 here has no such luxury). Rough
+# math (bytes/dense-param, unsharded: 2 bf16 weight + 4 fp32 master-weight + 8
+# fp32 Adam moments + 4 fp32 grad = 18 B/param):
 #   hidden=8192, 24 layers -> ~8.05e9 params * 18B ~= 145GB/GPU just for
 #     weights+optimizer+grads, before a single activation or embedding byte --
-#     this is *why* TP=1 OOM'd, independent of anything else in this file.
-#   hidden=3072, 24 layers -> 5*3072^2*24 ~= 1.13e9 params * 18B ~= 19GB/GPU,
-#     leaving ample headroom (>100GB) for activations + DynamicEmb's
+#     this is *why* TP=1 OOM'd at the original size, independent of anything
+#     else in this file.
+#   hidden=1024, 24 layers -> 5*1024^2*24 ~= 126e6 params * 18B ~= 2.3GB/GPU,
+#     trivially fitting with enormous headroom for activations + DynamicEmb's
 #     (mostly host-resident, per the successful primary run's own logs)
-#     embedding tables. Embedding dim now equals hidden_size (3072) per
+#     embedding tables. Embedding dim equals hidden_size (1024) per
 #     requirement 2 above, so the "narrow embedding" override is removed
-#     entirely (item/contextual_embedding_dim default to hidden_size).
-# scripts/04_size_model.sh re-validates this empirically (projection + smoke
-# test) before committing to a full run -- if it still doesn't fit on your
-# hardware, follow its printed instructions to shrink train_batch_size first;
-# only reduce hidden_size/num_layers further as a last resort (and re-derive
-# the constants above if you do).
+#     entirely (item/contextual_embedding_dim default to hidden_size) --
+#     1024 is also exactly the max DynamicEmb allows (requirement 3), so this
+#     is the largest hidden_size this checkpoint can legally use.
+# scripts/04_size_model.sh re-validates the memory side of this empirically
+# (projection + smoke test) before committing to a full run; the 1024 dim cap
+# itself is a hard library limit, not something the smoke test can trade off
+# against batch size -- do not raise hidden_size above 1024 for this file.
 
 TrainerArgs.train_batch_size = 8           # tuned by 04_size_model.sh (longer sequences -> smaller batch)
 TrainerArgs.eval_batch_size = 8
@@ -76,9 +88,9 @@ NetworkArgs.disable_contextual_mask = True
 
 NetworkArgs.dtype_str = "bfloat16"
 NetworkArgs.num_layers = 24
-NetworkArgs.num_attention_heads = 24
-NetworkArgs.hidden_size = 3072             # downsized from 8192 -- see memory math above
-NetworkArgs.kv_channels = 128              # 24 * 128 = 3072 = hidden_size
+NetworkArgs.num_attention_heads = 8
+NetworkArgs.hidden_size = 1024             # DynamicEmb's hard max embedding-dim -- see note above
+NetworkArgs.kv_channels = 128              # 8 * 128 = 1024 = hidden_size
 # item_embedding_dim / contextual_embedding_dim intentionally NOT overridden:
 # they default to hidden_size, which every serving tier hard-assumes (see
 # scope note above). Do not narrow these for this file.

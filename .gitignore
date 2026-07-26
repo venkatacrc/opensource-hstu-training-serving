@@ -6,6 +6,17 @@ workdir/
 state/*.done
 !state/.gitkeep
 
+# Derived/instantiated gin configs written at runtime by 04_size_model.sh,
+# 05_train.sh, and 07_serving_bench.sh (smoke-test, tuned-batch-size, and
+# inference-serving variants of the checked-in base configs). Host-specific
+# run artifacts, not source -- regenerated fresh from the base .gin files
+# every run, so committing them risks silently reusing a stale/incompatible
+# derived config across an unrelated fix to the base file.
+configs/.smoke_*.gin
+configs/.run_*.gin
+configs/.bench_inference_*.gin
+configs/*.tuned.gin
+
 # Keep result JSON/plots out of git by default (multi-run artifacts); the generated
 # docs/RESULTS.md summary is the thing meant to be committed/shared.
 !results/.gitkeep

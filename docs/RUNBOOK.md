@@ -324,7 +324,8 @@ python3 scripts/08_generate_report.py
 
 If you'd previously trained the secondary/serving checkpoint against a gin
 config that didn't satisfy the serving tiers' requirements (TP=1,
-`item_embedding_dim == hidden_size` -- see the scope note at the top of
+`item_embedding_dim == hidden_size`, and `hidden_size <= 1024` per
+DynamicEmb's hard embedding-width limit -- see the scope note at the top of
 `configs/hstu_8b_ranking_kuairand1k.gin` and `docs/ARCHITECTURE.md` section 4
 for the full story), that checkpoint's weight shapes are permanently
 incompatible with the new config and must be retrained from scratch --
@@ -362,11 +363,14 @@ python3 scripts/08_generate_report.py
 ```
 
 `scripts/04_size_model.sh`'s projection + smoke test will confirm the new,
-smaller (~1.13B-param, `hidden_size=3072`) architecture fits comfortably at
-TP=1 before committing to the full run -- see the memory math in the gin
-file's header comment. If it still doesn't fit on your specific hardware,
-follow its printed instructions (lower `train_batch_size` first) rather than
-re-widening `hidden_size`.
+much smaller (~126M-param, `hidden_size=1024`) architecture fits comfortably
+at TP=1 before committing to the full run -- see the memory math in the gin
+file's header comment. `hidden_size=1024` is not a tunable memory tradeoff:
+it's DynamicEmb's hard embedding-vector-width ceiling
+(`RuntimeError: dynamic emb does not support emb vector size > 1024`
+otherwise), so if a smoke test somehow still fails to fit, follow its printed
+instructions to lower `train_batch_size` -- do **not** raise `hidden_size`
+above 1024 for this file.
 
 ## Full reset
 
