@@ -86,9 +86,19 @@ NetworkArgs.kernel_backend = 'triton'
 NetworkArgs.target_group_size = 1
 NetworkArgs.recompute_input_layernorm = True
 NetworkArgs.recompute_input_silu = True
-# sequence_parallel shards LayerNorm/dropout residuals across the TP group --
-# meaningless (and potentially unsupported) at TP=1, unlike the ml-20m run.
-NetworkArgs.sequence_parallel = False
+# NOTE: there is deliberately no NetworkArgs.sequence_parallel binding here.
+# An earlier revision of this file set one (True, then False while chasing
+# the TP fix) -- `NetworkArgs` in examples/hstu/utils/gin_config_args.py has
+# no such field at all (confirmed against the pinned $RECSYS_TAG source), so
+# ANY value for it is a hard `gin.config.ValueError: Configurable 'NetworkArgs'
+# doesn't have a parameter named 'sequence_parallel'` at config-parse time,
+# before a single byte of GPU memory is touched. It went unnoticed for a
+# while because scripts/04_size_model.sh / 05_train.sh only re-parse the gin
+# file when their state markers are absent -- once the (TP=4) run had
+# succeeded and been marked done, the invalid line was never re-exercised
+# until state was reset for this fix. Megatron-Core derives sequence
+# parallelism from tensor_model_parallel_size internally; it isn't exposed
+# through this gin interface, so there's nothing to set here for TP=1.
 
 RankingArgs.prediction_head_arch = [1024, 8]
 RankingArgs.prediction_head_bias = True
