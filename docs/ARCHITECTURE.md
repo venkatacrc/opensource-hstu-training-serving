@@ -75,14 +75,19 @@ comfortably inside the requested 7-10B band. **HSTU-10B**
 shape with `num_layers=30` → `5 × 30 × 8192² ≈ 10.07 × 10⁹`.
 
 `configs/hstu_8b_ranking_kuairand1k.gin` (the secondary/serving-only run) uses
-the **same formula but a deliberately smaller `hidden_size=3072`** (24 layers
-→ `5 × 24 × 3072² ≈ 1.13 × 10⁹` dense params) -- see section 4 for why serving
-compatibility (TP=1, unsharded weights+optimizer+gradients on one GPU) caps
-how large this specific checkpoint can be, independent of the 7-10B target
-that the primary run alone is responsible for meeting. Its filename keeps the
-`8b` tag purely for path-convention consistency with the scripts (single
-`MODEL_SIZE` variable used to build both runs' paths); the comment at the top
-of that file explains the discrepancy.
+the **same formula but a deliberately much smaller `hidden_size=1024`** (24
+layers → `5 × 24 × 1024² ≈ 126 × 10⁶` dense params) -- see section 4 for why
+serving compatibility caps how large this specific checkpoint can be,
+independent of the 7-10B target that the primary run alone is responsible for
+meeting. 1024 isn't an arbitrary safety margin -- it's DynamicEmb's actual,
+hard-coded maximum embedding vector width (confirmed empirically:
+`RuntimeError: dynamic emb does not support emb vector size > 1024`, raised
+in its embedding-gather kernel), and every serving tier requires
+`item_embedding_dim == hidden_size`, so 1024 is the largest hidden_size this
+checkpoint can legally use, full stop -- not a memory/OOM tradeoff. Its
+filename keeps the `8b` tag purely for path-convention consistency with the
+scripts (single `MODEL_SIZE` variable used to build both runs' paths); the
+comment at the top of that file explains the discrepancy in detail.
 
 Embedding tables add only a few hundred MB to a few GB on top of the primary
 run's dense backbone, because ml-20m has a small item vocabulary (~27K items).
@@ -112,9 +117,9 @@ choice barely matters.
 | | Primary: `ml-20m` | Secondary: `kuairand-1k` |
 |---|---|---|
 | Role | Main training deliverable (the 7-10B-parameter model) | Serving-benchmark checkpoint only |
-| Dense size | `hidden_size=8192`, 24 layers → **~8.05B params** | `hidden_size=3072`, 24 layers → **~1.13B params** (deliberately downsized -- see below) |
+| Dense size | `hidden_size=8192`, 24 layers → **~8.05B params** | `hidden_size=1024`, 24 layers → **~126M params** (deliberately downsized -- see below) |
 | Parallelism | **TP=8** (Megatron-Core tensor parallel across the node) | **TP=1** (DP=8, 8 independent replicas) |
-| Why | ~27K items → dense-backbone-dominated memory profile; TP=8 needed so 8B params × ~18 bytes/param (bf16 weights + fp32 master weights + fp32 Adam moments + fp32 grads) shards to ~18-20GB/GPU instead of ~145GB/GPU under pure replication | The upstream inference examples (`inference/inference_gr_ranking.py`, the Triton Python backend, the AOTInductor export path) hard-code their dataset/embedding assumptions to `kuairand-1k` and are demonstrated end-to-end **only** with a TP=1, unsharded checkpoint -- see below for why that forces a smaller dense backbone here |
+| Why | ~27K items → dense-backbone-dominated memory profile; TP=8 needed so 8B params × ~18 bytes/param (bf16 weights + fp32 master weights + fp32 Adam moments + fp32 grads) shards to ~18-20GB/GPU instead of ~145GB/GPU under pure replication | The upstream inference examples (`inference/inference_gr_ranking.py`, the Triton Python backend, the AOTInductor export path) hard-code their dataset/embedding assumptions to `kuairand-1k` and are demonstrated end-to-end **only** with a TP=1, unsharded checkpoint whose embedding width is capped at 1024 by DynamicEmb -- see below |
 | Time budget | `TRAIN_BUDGET_HOURS` (default 12h) | `SECONDARY_TRAIN_BUDGET_HOURS` (default 2h) |
 
 **Why not reshard the ml-20m TP=8 checkpoint down to TP=1 for serving
@@ -128,29 +133,46 @@ unverified resharding step, this pipeline sidesteps the question entirely by
 training a second, TP=1, single-GPU-servable checkpoint on the dataset the
 serving examples already assume.
 
-**Why is the secondary checkpoint a different (smaller) size than the
-primary one, instead of "the same dense architecture at TP=1"?** All 4
-serving tiers require both TP=1 *and* `item_embedding_dim == hidden_size`
-(confirmed directly against upstream's
-`model/inference_ranking_gr.py:get_inference_ranking_gr`, which asserts
-`ebc_config.dim == hstu_config.hidden_size`). Combine that with the fact that
-TP=1 means the dense weights + fp32 Adam optimizer state + fp32 gradients
-must fit **unsharded** on one GPU (no 8-way TP split to lean on), and the
-primary run's 8.05B-param/`hidden_size=8192` architecture works out to
-~145GB/GPU for weights+optimizer+grads alone at TP=1 -- essentially the
-entire HBM budget before a single activation or embedding byte, and the
-concrete cause of the out-of-memory error that motivated (incorrectly, since
-serving requires TP=1 unconditionally) bumping `tensor_model_parallel_size`
-to 4 in an earlier revision. `hidden_size=3072` (24 layers, ~1.13B dense
-params) brings that down to ~19GB/GPU, comfortably fitting TP=1 with room to
-spare for activations and DynamicEmb's largely host-resident embedding
-tables. This means the two runs' raw training MFU/TFLOPS numbers are **not**
-directly comparable to each other (different arithmetic intensity from the
-smaller hidden dimension) -- `docs/RESULTS.md` reports them side by side for
-transparency but does not treat them as an apples-to-apples MFU comparison;
-the primary ml-20m run alone is what satisfies the "train a 7-10B parameter
-model" requirement, and the secondary run's only job is producing a
-serving-compatible checkpoint for the Tier 0-3 latency/throughput comparison.
+**Why is the secondary checkpoint a different (much smaller) size than the
+primary one, instead of "the same dense architecture at TP=1"?** Three
+independent, hard (non-negotiable) constraints stack up here:
+
+1. **TP=1 is required.** All 4 serving tiers load the checkpoint's raw,
+   unsharded state dict with no resharding step (confirmed directly against
+   `model/inference_ranking_gr.py`) -- checkpoint-resharding for inference
+   isn't supported by any of the 4 tiers.
+2. **`item_embedding_dim == hidden_size` is required.** Confirmed directly
+   against upstream's `model/inference_ranking_gr.py:get_inference_ranking_gr`,
+   which asserts `ebc_config.dim == hstu_config.hidden_size`.
+3. **DynamicEmb hard-caps embedding vector width at 1024.** Found empirically
+   at the first real training forward pass (not at config-parse or
+   model-construction time, which is why it survived several earlier
+   revisions unnoticed): `RuntimeError: dynamic emb does not support emb
+   vector size > 1024`, raised in its embedding-gather kernel. Combined with
+   constraint 2, this caps `hidden_size` at exactly 1024 for any checkpoint
+   that needs to pass through all 4 serving tiers -- independent of memory,
+   independent of TP.
+
+Constraint 3 is the binding one: even though TP=1 also means the dense
+weights + fp32 Adam optimizer state + fp32 gradients must fit **unsharded**
+on one GPU (no 8-way TP split to lean on), and the primary run's
+8.05B-param/`hidden_size=8192` architecture would need ~145GB/GPU for
+weights+optimizer+grads alone at TP=1 (essentially the entire HBM budget
+before a single activation or embedding byte -- the concrete cause of the
+out-of-memory error that motivated, incorrectly, bumping
+`tensor_model_parallel_size` to 4 in an earlier revision), `hidden_size=1024`
+would comfortably fit TP=1's memory budget on its own (~2.3GB/GPU for
+weights+optimizer+grads). The reason it's capped at exactly 1024 rather than
+some larger memory-safe value (e.g. 3072, used in an earlier revision of this
+file before the DynamicEmb limit was discovered) is purely the DynamicEmb
+kernel ceiling in constraint 3. This means the two runs' raw training
+MFU/TFLOPS numbers are **not** directly comparable to each other (very
+different arithmetic intensity from the ~64x-smaller hidden dimension) --
+`docs/RESULTS.md` reports them side by side for transparency but does not
+treat them as an apples-to-apples MFU comparison; the primary ml-20m run
+alone is what satisfies the "train a 7-10B parameter model" requirement, and
+the secondary run's only job is producing a serving-compatible checkpoint for
+the Tier 0-3 latency/throughput comparison.
 
 ## 5. Parallelism strategy (primary run)
 
