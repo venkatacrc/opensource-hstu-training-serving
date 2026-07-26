@@ -82,10 +82,14 @@ if [[ "$TIER2_AVAILABLE" == "1" ]]; then
   docker rm -f "$TIER2_CONTAINER" >/dev/null 2>&1 || true
   BS_MAX=$(echo "$BENCH_BATCH_SIZES" | tr ',' '\n' | sort -n | tail -n1)
 
+  # No $RECSYS_DIR bind-mount over /workspace/recsys-examples -- see the
+  # explanatory comment above docker_gpu_run() in lib/common.sh. All the
+  # sed patching below happens against the image's own (fully-built) copy,
+  # inside this single long-lived container, so tritonserver (started later
+  # in the same bash -lc session) reads back exactly what was just patched.
   set +e
   docker run -d --name "$TIER2_CONTAINER" --gpus all --ipc=host --network host \
     --ulimit memlock=-1 --ulimit stack=67108864 --shm-size=16g \
-    -v "$RECSYS_DIR:/workspace/recsys-examples" \
     -v "$DATA_DIR:/workspace/data" \
     -v "$CKPT_DIR:/workspace/checkpoints" \
     -v "$REPO_ROOT/configs:/workspace/configs" \
@@ -112,6 +116,7 @@ if [[ "$TIER2_AVAILABLE" == "1" ]]; then
       find $CONTAINER_CKPT_DIR/dynamicemb_module -type f -regex '.*/.*_emb_.*' -print0 2>/dev/null | \
         while IFS= read -r -d '' f; do ln -s \"\$(realpath \"\$f\")\" \"\$PS_MODULE_DIR/\$(basename \"\$f\").dyn\"; done
 
+      BENCH_GIN_CONTAINER=/workspace/configs/.bench_inference_${DATASET_SLUG}.gin
       mkdir -p \"\$DENSE_DIR/1\" \"\$SPARSE_DIR/1\"
       cp \"\$DENSE_DIR/model.py\" \"\$DENSE_DIR/1/model.py\"
       cp \"\$SPARSE_DIR/model.py\" \"\$SPARSE_DIR/1/model.py\"
@@ -121,9 +126,24 @@ if [[ "$TIER2_AVAILABLE" == "1" ]]; then
         else
           sed -i \"/key: \\\"HSTU_CHECKPOINT_DIR\\\"/,/}/ s#string_value: \\\"[^\\\"]*\\\"#string_value: \\\"$CONTAINER_CKPT_DIR\\\"#\" \"\$CFG\"
         fi
+        # HSTU_GIN_CONFIG_FILE defaults (in both hstu_model/ and hstu_sparse/
+        # config.pbtxt shipped upstream) to a tiny demo config
+        # (inference/configs/kuairand_1k_inference_ranking.gin, hidden_size=512)
+        # meant only for upstream's own smoke test -- NOT the HSTU-8B network
+        # shape our checkpoint was trained with. Left unpatched, Triton loads
+        # that 512-hidden-size model and then fails with a torch state_dict
+        # size mismatch (checkpoint tensors are 8192-wide) as soon as it tries
+        # to load our real weights. Point it at the real, NVEmb-patched gin
+        # assembled above instead.
+        if ! grep -q 'key: \"HSTU_GIN_CONFIG_FILE\"' \"\$CFG\"; then
+          printf '\nparameters [\n {\n key: \"HSTU_GIN_CONFIG_FILE\"\n value: {\n string_value: \"%s\"\n }\n }\n]\n' \"\$BENCH_GIN_CONTAINER\" >> \"\$CFG\"
+        else
+          sed -i \"/key: \\\"HSTU_GIN_CONFIG_FILE\\\"/,/}/ s#string_value: \\\"[^\\\"]*\\\"#string_value: \\\"\$BENCH_GIN_CONTAINER\\\"#\" \"\$CFG\"
+        fi
         if ! grep -q 'max_batch_size' \"\$CFG\"; then
           sed -i \"1i max_batch_size: ${BS_MAX}\" \"\$CFG\"
         fi
+        echo \"--- effective \$CFG ---\"; cat \"\$CFG\"
       done
 
       export LD_LIBRARY_PATH=/usr/local/lib/python3.12/dist-packages/torch/lib:/opt/hpcx/ucc/lib:/opt/hpcx/ucx/lib:/usr/local/cuda/compat/lib:/usr/local/nvidia/lib:/usr/local/nvidia/lib64:\${LD_LIBRARY_PATH:-}
@@ -177,9 +197,12 @@ if [[ "$TIER3_AVAILABLE" == "1" ]]; then
   docker rm -f "$TIER3_CONTAINER" >/dev/null 2>&1 || true
   MAX_BS_FOR_EXPORT=$(echo "$BENCH_BATCH_SIZES" | tr ',' '\n' | sort -n | tail -n1)
 
+  # No $RECSYS_DIR bind-mount here either -- see the comment above the Tier 2
+  # docker run above / docker_gpu_run() in lib/common.sh for why: the
+  # ${IMAGE_NAME}-tritonserver image already has the fully-built
+  # /workspace/recsys-examples (triton_libs/, patched config.pbtxt) baked in.
   set +e
   docker run -d --name "$TIER3_CONTAINER" --gpus all --ipc=host --network host \
-    -v "$RECSYS_DIR:/workspace/recsys-examples" \
     -v "$TRITON_REPO_DIR:/triton_model_repo" \
     -v "$EXPORT_DIR:/workspace/export" \
     -v "$REPO_ROOT/results:/workspace/results" \

@@ -266,6 +266,19 @@ compilation). Check, in order:
    (`triton_libs/...`) are missing, that likely means Phase 1's Docker build
    didn't complete the AOTI/C++ artifact build stage -- check
    `state/01_build_env_docker_build.log` for that stage's output.
+4. `not found: .../corelib/dynamicemb/torch_binding_build/inference_emb_ops.so`
+   (or any other `triton_libs/...`/`inference_aoti/.../build/...` artifact
+   reported missing at *runtime*, when Phase 1's build log shows it built
+   fine): this was a real bug fixed in `lib/common.sh`/`scripts/05_train.sh`/
+   `scripts/06_export_checkpoint.sh`/`scripts/07_serving_bench.sh` -- none of
+   the `docker run`/`docker build` invocations bind-mount the host
+   `$RECSYS_DIR` checkout onto `/workspace/recsys-examples` inside the
+   container anymore, because doing so silently shadowed the image's
+   fully-built copy (with all compiled `.so`s) with the plain, uncompiled host
+   source tree. If you're on an older checkout of this repo and hit this,
+   `git pull` / re-sync and re-run; there's no need to rebuild the Phase 1
+   image, since the artifacts were always built correctly -- they just
+   weren't visible at runtime.
 
 If Tier 3 can't be made to work in your environment, that's fine --
 `docs/RESULTS.md` will simply report it as unavailable and the report and
@@ -282,9 +295,14 @@ server); Tier 2/3 launch a Triton server container, wait for
 - *A tier's Triton server never becomes ready*: check
   `state/07_serving_bench_tier{2,3}_server_full.log`. Common causes: the
   checkpoint's `HSTU_CHECKPOINT_DIR` parameter in `config.pbtxt` didn't get
-  patched correctly (inspect the staged file directly in
-  `workdir/recsys-examples/examples/hstu/inference/triton/hstu_model/config.pbtxt`),
-  or `LD_PRELOAD`/`LD_LIBRARY_PATH` mismatches for the custom ops libraries.
+  patched correctly, or `LD_PRELOAD`/`LD_LIBRARY_PATH` mismatches for the
+  custom ops libraries. The staged `config.pbtxt` no longer lives on the host
+  (it's patched inside the container's own writable layer, not on a
+  bind-mounted `$RECSYS_DIR` -- see Tier 3 troubleshooting point 4 above for
+  why) -- the effective, fully-patched contents of both `config.pbtxt` files
+  are printed into `state/07_serving_bench_tier2_server_full.log` (Tier 2) as
+  part of the container's own startup output; `docker exec` into a live
+  container (or `docker cp`) if you need to inspect further while it's running.
 - *One batch size fails but others succeed*: expected and non-fatal -- the
   script continues the sweep and logs a per-batch-size warning; check
   `state/07_serving_bench_<tier>_bs<N>.log` for that specific failure.
@@ -301,6 +319,54 @@ Re-run any time after any phase to refresh the report with partial results:
 ```bash
 python3 scripts/08_generate_report.py
 ```
+
+## Recovering from an incompatible secondary (kuairand-1k) checkpoint
+
+If you'd previously trained the secondary/serving checkpoint against a gin
+config that didn't satisfy the serving tiers' requirements (TP=1,
+`item_embedding_dim == hidden_size` -- see the scope note at the top of
+`configs/hstu_8b_ranking_kuairand1k.gin` and `docs/ARCHITECTURE.md` section 4
+for the full story), that checkpoint's weight shapes are permanently
+incompatible with the new config and must be retrained from scratch --
+`scripts/05_train.sh` auto-resumes from whatever's on disk, which would
+otherwise crash immediately on a shape mismatch. The **primary ml-20m run is
+unaffected and does not need to be touched or retrained.**
+
+```bash
+# 1. Pick up the fixed configs/scripts (config file + docker mount fix).
+git pull   # or re-sync this repo onto the box however you normally do
+
+# 2. Move the old, now-incompatible secondary checkpoint + its stale tuned
+#    config out of the way (don't just delete if you want a backup).
+mv workdir/checkpoints/hstu_8b_kuairand1k workdir/checkpoints/hstu_8b_kuairand1k.bak_incompatible
+rm -f configs/hstu_8b_ranking_kuairand1k.tuned.gin
+
+# 3. Reset the state markers for every phase downstream of the config change.
+rm -f state/04_size_model_kuairand1k.done \
+      state/05_train_kuairand1k.done \
+      state/06_export_checkpoint.done \
+      state/07_serving_bench.done
+
+# 4. Re-run. Simplest: just re-invoke the top-level orchestrator -- it's
+#    idempotent and will skip everything still marked done (preflight, env
+#    build, datasets, and the *primary* ml-20m run/checkpoint are untouched)
+#    and pick up exactly at the secondary run:
+./scripts/run_all.sh
+
+# ...or drive the remaining phases directly if you want more control:
+SIZE_DATASET=kuairand-1k ./scripts/04_size_model.sh
+TRAIN_DATASET=kuairand-1k TRAIN_HOURS=$SECONDARY_TRAIN_BUDGET_HOURS ./scripts/05_train.sh
+./scripts/06_export_checkpoint.sh
+./scripts/07_serving_bench.sh
+python3 scripts/08_generate_report.py
+```
+
+`scripts/04_size_model.sh`'s projection + smoke test will confirm the new,
+smaller (~1.13B-param, `hidden_size=3072`) architecture fits comfortably at
+TP=1 before committing to the full run -- see the memory math in the gin
+file's header comment. If it still doesn't fit on your specific hardware,
+follow its printed instructions (lower `train_batch_size` first) rather than
+re-widening `hidden_size`.
 
 ## Full reset
 

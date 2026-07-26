@@ -62,9 +62,9 @@ layers to hit the same total parameter count as an equivalent-depth GPT
 model; that's expected and fine, since here we're targeting a parameter
 budget, not benchmarking against a specific transformer variant.)
 
-**HSTU-8B** (`configs/hstu_8b_ranking_*.gin`): `hidden_size=8192`,
-`num_layers=24`, `num_attention_heads=64`, `kv_channels=128` (so `N·D=8192=H`,
-as required) →
+**HSTU-8B** (`configs/hstu_8b_ranking_ml20m.gin`, the primary/main-deliverable
+run): `hidden_size=8192`, `num_layers=24`, `num_attention_heads=64`,
+`kv_channels=128` (so `N·D=8192=H`, as required) →
 
 ```
 5 × 24 × 8192² ≈ 8.05 × 10⁹ dense params
@@ -74,13 +74,27 @@ comfortably inside the requested 7-10B band. **HSTU-10B**
 (`configs/hstu_10b_ranking_ml20m.gin`, optional stretch config) is the same
 shape with `num_layers=30` → `5 × 30 × 8192² ≈ 10.07 × 10⁹`.
 
-Embedding tables add only a few hundred MB to a few GB on top of this,
-because both benchmark datasets have small-to-moderate item vocabularies
-(ml-20m: ~27K items; KuaiRand-1K: ~4.4M items) relative to the 8B-parameter
-dense backbone -- i.e. this is deliberately an **infra/compute stress test of
-the dense transformer backbone**, not an embedding-table capacity stress test
-(that would be a different, equally valid exercise with a billion-row ID
-space, e.g. KuaiRand-27K or a real production catalog).
+`configs/hstu_8b_ranking_kuairand1k.gin` (the secondary/serving-only run) uses
+the **same formula but a deliberately smaller `hidden_size=3072`** (24 layers
+→ `5 × 24 × 3072² ≈ 1.13 × 10⁹` dense params) -- see section 4 for why serving
+compatibility (TP=1, unsharded weights+optimizer+gradients on one GPU) caps
+how large this specific checkpoint can be, independent of the 7-10B target
+that the primary run alone is responsible for meeting. Its filename keeps the
+`8b` tag purely for path-convention consistency with the scripts (single
+`MODEL_SIZE` variable used to build both runs' paths); the comment at the top
+of that file explains the discrepancy.
+
+Embedding tables add only a few hundred MB to a few GB on top of the primary
+run's dense backbone, because ml-20m has a small item vocabulary (~27K items).
+KuaiRand-1K's ~4.4M items is a more substantial embedding table by
+comparison, but DynamicEmb keeps it mostly host-resident rather than
+GPU-resident (confirmed in the training run's own logs), so it doesn't
+materially change the GPU memory story above. This is deliberately an
+**infra/compute stress test of the dense transformer backbone** on the
+primary run, not an embedding-table capacity stress test (that would be a
+different, equally valid exercise with a billion-row ID space, e.g.
+KuaiRand-27K or a real production catalog, sized independent of the serving
+TP=1 constraint).
 
 ## 3. Sequence length choice
 
@@ -97,9 +111,10 @@ choice barely matters.
 
 | | Primary: `ml-20m` | Secondary: `kuairand-1k` |
 |---|---|---|
-| Role | Main training deliverable | Serving-benchmark checkpoint |
+| Role | Main training deliverable (the 7-10B-parameter model) | Serving-benchmark checkpoint only |
+| Dense size | `hidden_size=8192`, 24 layers → **~8.05B params** | `hidden_size=3072`, 24 layers → **~1.13B params** (deliberately downsized -- see below) |
 | Parallelism | **TP=8** (Megatron-Core tensor parallel across the node) | **TP=1** (DP=8, 8 independent replicas) |
-| Why | ~27K items → dense-backbone-dominated memory profile; TP=8 needed so 8B params × ~16-20 bytes/param (bf16 weights + grads + fp32 Adam state) shards to ~16-20GB/GPU instead of ~130-160GB/GPU under pure replication | The upstream inference examples (`inference/inference_gr_ranking.py`, the Triton Python backend, the AOTInductor export path) hard-code their dataset/embedding assumptions to `kuairand-1k` and are demonstrated end-to-end **only** with a TP=1 checkpoint. Training TP=1 here sidesteps checkpoint-resharding risk entirely (a real unknown -- see below) at the cost of a second, shorter, independent training run |
+| Why | ~27K items → dense-backbone-dominated memory profile; TP=8 needed so 8B params × ~18 bytes/param (bf16 weights + fp32 master weights + fp32 Adam moments + fp32 grads) shards to ~18-20GB/GPU instead of ~145GB/GPU under pure replication | The upstream inference examples (`inference/inference_gr_ranking.py`, the Triton Python backend, the AOTInductor export path) hard-code their dataset/embedding assumptions to `kuairand-1k` and are demonstrated end-to-end **only** with a TP=1, unsharded checkpoint -- see below for why that forces a smaller dense backbone here |
 | Time budget | `TRAIN_BUDGET_HOURS` (default 12h) | `SECONDARY_TRAIN_BUDGET_HOURS` (default 2h) |
 
 **Why not reshard the ml-20m TP=8 checkpoint down to TP=1 for serving
@@ -111,9 +126,31 @@ not just the dense Megatron weights) isn't something we could verify without
 running it -- so rather than build the serving comparison on top of an
 unverified resharding step, this pipeline sidesteps the question entirely by
 training a second, TP=1, single-GPU-servable checkpoint on the dataset the
-serving examples already assume. Both runs share the identical dense
-architecture (same gin `NetworkArgs`), so training MFU/TFLOPS numbers are
-still directly comparable between the two datasets in `docs/RESULTS.md`.
+serving examples already assume.
+
+**Why is the secondary checkpoint a different (smaller) size than the
+primary one, instead of "the same dense architecture at TP=1"?** All 4
+serving tiers require both TP=1 *and* `item_embedding_dim == hidden_size`
+(confirmed directly against upstream's
+`model/inference_ranking_gr.py:get_inference_ranking_gr`, which asserts
+`ebc_config.dim == hstu_config.hidden_size`). Combine that with the fact that
+TP=1 means the dense weights + fp32 Adam optimizer state + fp32 gradients
+must fit **unsharded** on one GPU (no 8-way TP split to lean on), and the
+primary run's 8.05B-param/`hidden_size=8192` architecture works out to
+~145GB/GPU for weights+optimizer+grads alone at TP=1 -- essentially the
+entire HBM budget before a single activation or embedding byte, and the
+concrete cause of the out-of-memory error that motivated (incorrectly, since
+serving requires TP=1 unconditionally) bumping `tensor_model_parallel_size`
+to 4 in an earlier revision. `hidden_size=3072` (24 layers, ~1.13B dense
+params) brings that down to ~19GB/GPU, comfortably fitting TP=1 with room to
+spare for activations and DynamicEmb's largely host-resident embedding
+tables. This means the two runs' raw training MFU/TFLOPS numbers are **not**
+directly comparable to each other (different arithmetic intensity from the
+smaller hidden dimension) -- `docs/RESULTS.md` reports them side by side for
+transparency but does not treat them as an apples-to-apples MFU comparison;
+the primary ml-20m run alone is what satisfies the "train a 7-10B parameter
+model" requirement, and the secondary run's only job is producing a
+serving-compatible checkpoint for the Tier 0-3 latency/throughput comparison.
 
 ## 5. Parallelism strategy (primary run)
 

@@ -116,8 +116,12 @@ if [[ "$TIER3_EXPORT_EXIT" -eq 0 ]]; then
   if [[ "$TRITON_IMG_EXIT" -eq 0 ]]; then
     log "Staging Tier 3 Triton model repo at $TRITON_REPO_DIR/hstu_gr_ranking_kvcache ..."
     mkdir -p "$TRITON_REPO_DIR/hstu_gr_ranking_kvcache/1"
+    # No $RECSYS_DIR bind-mount here either -- docker/Dockerfile.tritonserver's
+    # COPY --from=pytorch_aoti /workspace/recsys-examples /workspace/recsys-examples
+    # already bakes in the fully-built tree (triton_libs/, the
+    # libnve_init_hook.so-patched config.pbtxt, etc.); shadowing it with the
+    # host source tree here was the same bug fixed in lib/common.sh.
     docker run --rm \
-      -v "$RECSYS_DIR:/workspace/recsys-examples" \
       -v "$TRITON_REPO_DIR:/workspace/triton_model_repo" \
       -v "$EXPORT_DIR:/workspace/export" \
       "${IMAGE_NAME}-tritonserver" bash -lc "
